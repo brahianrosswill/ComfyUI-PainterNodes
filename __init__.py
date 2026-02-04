@@ -34,6 +34,9 @@ from .PainterMultiF2V import NODE_DISPLAY_NAME_MAPPINGS as PainterMultiF2V_NAMES
 from .PainterLongVideo import NODE_CLASS_MAPPINGS as PainterLongVideo_MAPPINGS
 from .PainterLongVideo import NODE_DISPLAY_NAME_MAPPINGS as PainterLongVideo_NAMES
 
+from .PainterSequentialF2V import NODE_CLASS_MAPPINGS as PainterSequentialF2V_MAPPINGS
+from .PainterSequentialF2V import NODE_DISPLAY_NAME_MAPPINGS as PainterSequentialF2V_NAMES
+
 from .PainterFluxImageEdit import NODE_CLASS_MAPPINGS as PainterFluxImageEdit_MAPPINGS
 from .PainterFluxImageEdit import NODE_DISPLAY_NAME_MAPPINGS as PainterFluxImageEdit_NAMES
 
@@ -91,6 +94,7 @@ NODE_CLASS_MAPPINGS = {
     **PainterFLF2V_MAPPINGS,
     **PainterMultiF2V_MAPPINGS,
     **PainterLongVideo_MAPPINGS,
+    **PainterSequentialF2V_MAPPINGS,
     **PainterFluxImageEdit_MAPPINGS,
     **PainterQwenImageEditPlus_MAPPINGS,
     **PainterVRAM_MAPPINGS,
@@ -119,6 +123,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **PainterFLF2V_NAMES,
     **PainterMultiF2V_NAMES,
     **PainterLongVideo_NAMES,
+    **PainterSequentialF2V_NAMES,
     **PainterFluxImageEdit_NAMES,
     **PainterQwenImageEditPlus_NAMES,
     **PainterVRAM_NAMES,
