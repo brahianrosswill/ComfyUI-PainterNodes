@@ -33,7 +33,7 @@ class PainterQwenImageEdit(io.ComfyNode):
                 # 声明自动伸缩输入端口：前缀为 image_，范围在 1 到 10 张图之间
                 io.Autogrow.Input("images", optional=True,
                     template=io.Autogrow.TemplatePrefix(
-                        input=io.Image.Input("image"),
+                        input=io.Image.Input("image", optional=True),
                         prefix="image_", min=1, max=10)),
             ],
             outputs=[
@@ -70,7 +70,7 @@ class PainterQwenImageEdit(io.ComfyNode):
         
         ref_longest_edge = max(width, height)
         
-        llama_template = "<|im_start|>system\nDescribe the key features of the input image (color, shape, size, texture, objects, background), then explain how the user's text instruction should alter or modify the image. Generate a new image that meets the user's requirements while maintaining consistency with the original input where appropriate.<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n"
+        llama_template = "<|im_start|>system\nDescribe the key features of the input image (color, shape, size, texture, objects, background), then explain how the user's text instruction should alter or modify the image. Generate a new image that meets the user's requirements while maintaining consistency with the original input where appropriate.\n<|im_start|>user\n{}\n<|im_start|>assistant\n"
         image_prompt = ""
 
         # 2. 遍历处理所有实际连接的图片
