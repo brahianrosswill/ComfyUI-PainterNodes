@@ -1,58 +1,68 @@
-import node_helpers
-import comfy.utils
 import math
 import torch
-import comfy.model_management
 import torch.nn.functional as F
+from typing_extensions import override
+
+import comfy.model_management
+import comfy.utils
+import node_helpers
+from comfy_api.latest import ComfyExtension, io
 
 
-class PainterQwenImageEditPlus:
+class PainterQwenImageEdit(io.ComfyNode):
+    """
+    使用新版 Comfy API 的 Qwen 图像编辑节点。
+    无需任何 autogrow.js 即可实现多图输入的自动伸缩。
+    """
+
     @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "clip": ("CLIP",),
-                "prompt": ("STRING", {"multiline": True, "dynamicPrompts": True}),
-                "mode": (["1_image", "2_image", "3_image", "4_image", "5_image", 
-                         "6_image", "7_image", "8_image", "9_image", "10_image"],),
-                "batch_size": ("INT", {"default": 1, "min": 1, "max": 64, "step": 1}),
-            },
-            "optional": {
-                "vae": ("VAE",),
-                "image1_mask": ("MASK",),  # Moved above image1
-                "image1": ("IMAGE",),
-                "image2": ("IMAGE",),
-                "image3": ("IMAGE",),
-                "image4": ("IMAGE",),
-                "image5": ("IMAGE",),
-                "image6": ("IMAGE",),
-                "image7": ("IMAGE",),
-                "image8": ("IMAGE",),
-                "image9": ("IMAGE",),
-                "image10": ("IMAGE",),
-                "width": ("INT", {"default": 1024, "min": 512, "max": 4096, "step": 8}),
-                "height": ("INT", {"default": 1024, "min": 512, "max": 4096, "step": 8}),
-            }
-        }
+    def define_schema(cls):
+        return io.Schema(
+            node_id="PainterQwenImageEdit",
+            display_name="Painter Qwen Image Edit",
+            category="advanced/conditioning",
+            description="Pixel-perfect Qwen image editing with dynamic image inputs using the latest Comfy API.",
+            inputs=[
+                io.Clip.Input("clip"),
+                io.String.Input("prompt", multiline=True),
+                io.Int.Input("batch_size", default=1, min=1, max=64),
+                io.Vae.Input("vae", optional=True),
+                io.Mask.Input("image0_mask", optional=True, tooltip="作用于第一张输入图（image_1）的遮罩"),
+                io.Int.Input("width", default=1024, min=512, max=4096, step=8),
+                io.Int.Input("height", default=1024, min=512, max=4096, step=8),
+                # 声明自动伸缩输入端口：前缀为 image_，范围在 1 到 10 张图之间
+                io.Autogrow.Input("images", optional=True,
+                    template=io.Autogrow.TemplatePrefix(
+                        input=io.Image.Input("image"),
+                        prefix="image_", min=1, max=10)),
+            ],
+            outputs=[
+                io.Conditioning.Output(display_name="positive"),
+                io.Conditioning.Output(display_name="negative"),
+                io.Latent.Output(display_name="latent"),
+            ],
+        )
 
-    RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "LATENT")
-    RETURN_NAMES = ("positive", "negative", "latent")
-    FUNCTION = "encode"
-    CATEGORY = "advanced/conditioning"
-    DESCRIPTION = "Pixel-perfect Qwen image editing with dynamic image inputs"
-
-    def encode(self, clip, prompt, mode, batch_size, vae=None, 
-               image1=None, image2=None, image3=None, image4=None, image5=None,
-               image6=None, image7=None, image8=None, image9=None, image10=None,
-               image1_mask=None, width=1024, height=1024):
+    @classmethod
+    def execute(cls, clip, prompt, batch_size, vae=None, image1_mask=None, 
+                width=1024, height=1024, images=None) -> io.NodeOutput:
         
         target_latent_h = height // 8
         target_latent_w = width // 8
         
-        all_images = [image1, image2, image3, image4, image5, 
-                      image6, image7, image8, image9, image10]
-        count = int(mode.split("_")[0])
-        images = [img for i, img in enumerate(all_images[:count]) if img is not None]
+        # 1. 动态收集并按数字顺序（image_1, image_2...）正确排序输入的图片
+        collected_images = []
+        if images:
+            def get_num(key):
+                try:
+                    return int(key.split("_")[-1])
+                except ValueError:
+                    return 0
+            # 使用自定义 key 排序，防止出现字符串排序导致 image_10 排在 image_2 前面的问题
+            for name in sorted(images.keys(), key=get_num):
+                img = images[name]
+                if img is not None:
+                    collected_images.append(img)
         
         ref_latents = []
         vl_images = []
@@ -63,7 +73,8 @@ class PainterQwenImageEditPlus:
         llama_template = "<|im_start|>system\nDescribe the key features of the input image (color, shape, size, texture, objects, background), then explain how the user's text instruction should alter or modify the image. Generate a new image that meets the user's requirements while maintaining consistency with the original input where appropriate.<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n"
         image_prompt = ""
 
-        for i, image in enumerate(images):
+        # 2. 遍历处理所有实际连接的图片
+        for i, image in enumerate(collected_images):
             samples = image.movedim(-1, 1)
             current_total = samples.shape[3] * samples.shape[2]
             
@@ -107,6 +118,7 @@ class PainterQwenImageEditPlus:
                     canvas[:, :, :resized_height_actual, :resized_width_actual] = resized_samples
                     s = canvas
                     
+                    # 仅在处理第一张图时应用 image1_mask
                     if i == 0 and image1_mask is not None:
                         mask = image1_mask
                         if mask.dim() == 2:
@@ -144,14 +156,15 @@ class PainterQwenImageEditPlus:
                 ref_latent = vae.encode(image[:, :, :, :3])
                 ref_latents.append(ref_latent)
         
+        # 3. 文本编码与条件生成
         tokens = clip.tokenize(image_prompt + prompt, images=vl_images, llama_template=llama_template)
         conditioning = clip.encode_from_tokens_scheduled(tokens)
         
         negative_tokens = clip.tokenize("")
         negative_conditioning = clip.encode_from_tokens_scheduled(negative_tokens)
         
-        if len(images) > 0 and vae is not None:
-            base_img = images[0]
+        if len(collected_images) > 0 and vae is not None:
+            base_img = collected_images[0]
             base_samples = base_img.movedim(-1, 1)
             base_resized = comfy.utils.common_upscale(base_samples, target_latent_w * 8, target_latent_h * 8, "lanczos", "center")
             base_resized = base_resized.movedim(1, -1)
@@ -172,6 +185,7 @@ class PainterQwenImageEditPlus:
         
         latent_out = {"samples": latent_samples}
         
+        # 4. 遮罩后续缩放与对齐
         if noise_mask is not None:
             if noise_mask.dim() == 2:
                 noise_mask = noise_mask.unsqueeze(0).unsqueeze(0)
@@ -193,6 +207,7 @@ class PainterQwenImageEditPlus:
             
             latent_out["noise_mask"] = noise_mask
         
+        # 5. 处理 Batch Size 复制
         if batch_size > 1:
             conditioning = conditioning * batch_size
             negative_conditioning = negative_conditioning * batch_size
@@ -203,13 +218,25 @@ class PainterQwenImageEditPlus:
                 samples = samples.repeat(*target_shape)
             latent_out["samples"] = samples
         
-        return (conditioning, negative_conditioning, latent_out)
+        return io.NodeOutput(conditioning, negative_conditioning, latent_out)
 
 
+class PainterQwenExtension(ComfyExtension):
+    @override
+    async def get_node_list(self) -> list[type[io.ComfyNode]]:
+        return [
+            PainterQwenImageEdit,
+        ]
+
+
+async def comfy_entrypoint() -> PainterQwenExtension:
+    return PainterQwenExtension()
+
+# 把这两段加在 PainterQwenImageEdit.py 文件的最底下
 NODE_CLASS_MAPPINGS = {
-    "PainterQwenImageEditPlus": PainterQwenImageEditPlus,
+    "PainterQwenImageEdit": PainterQwenImageEdit
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "PainterQwenImageEditPlus": "Painter Qwen Image Edit Plus",
+    "PainterQwenImageEdit": "Painter Qwen Image Edit"
 }
