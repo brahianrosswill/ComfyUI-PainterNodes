@@ -29,7 +29,7 @@
 
  2026-1-31更新：
  
- 升级PainterQwenImageEditPlus节点： 支持自定义编辑图片数量，最多10图编辑，支持文生图，支持遮罩编辑，编辑图片像素无偏移，支持批次设定（支持flux4B 和 9B模型）
+ 升级PainterQwenImageEdit节点： 支持自定义编辑图片数量，最多10图编辑，支持文生图，支持遮罩编辑，编辑图片像素无偏移，支持批次设定
 
  2026-1-30更新：
  
@@ -49,7 +49,7 @@
 | **采样器** | PainterSampler, PainterSamplerLTXV | 高级双模型和 LTXV 采样器 |
 | **LTXV** | PainterLTX2V, PainterLTX2VPlus | LTXV 潜空间生成，支持帧控制 |
 | **帧生成视频** | PainterFLF2V, PainterMultiF2V, PainterLongVideo | 首尾帧/多帧/长视频生成 |
-| **图像编辑** | PainterFluxImageEdit, PainterQwenImageEditPlus | Flux/Qwen 图像编辑，动态输入 |
+| **图像编辑** | PainterFluxImageEdit, PainterQwenImageEdit | Flux/Qwen 图像编辑，动态输入 |
 | **显存管理** | PainterVRAM | GPU 显存管理工具 |
 | **视频处理** | PainterVideoCombine, PainterVideoUpscale, PainterVideoInfo | 视频处理工具 |
 | **图像工具** | PainterFrameCount, PainterImageLoad, PainterImageFromBatch, PainterCombineFromBatch | 图像工具集 |
