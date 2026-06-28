@@ -6,7 +6,7 @@ from comfy_api.latest import ComfyExtension, io
 class PainterImageConcat(io.ComfyNode):
     """Concatenate multiple images or image sequences (video) along a chosen direction.
     All inputs are resized to match the first image (image_0) before concatenation.
-    Short sequences are padded with black frames to match the longest sequence."""
+    Short sequences are padded with the last frame frozen to match the longest sequence."""
 
     @classmethod
     def define_schema(cls):
@@ -20,7 +20,7 @@ class PainterImageConcat(io.ComfyNode):
             node_id="PainterImageConcat",
             display_name="Painter Image Concat",
             category="painter/image",
-            description="Concatenate multiple images or image sequences along a chosen direction. All inputs are resized to match image_0 before concatenation. Short sequences are padded with black frames to match the longest sequence.",
+            description="Concatenate multiple images or image sequences along a chosen direction. All inputs are resized to match image_0 before concatenation. Short sequences are padded with the last frame frozen to match the longest sequence.",
             inputs=[
                 io.Autogrow.Input("images", template=autogrow_template),
                 io.Combo.Input("direction", options=["right", "left", "down", "up"], default="down"),
@@ -63,14 +63,13 @@ class PainterImageConcat(io.ComfyNode):
         if len(resized_list) == 0:
             raise ValueError("No valid images after filtering.")
 
-        # Pad shorter sequences with black frames to match max_frames
         padded_list = []
         for img in resized_list:
             current_frames = img.shape[0]
             if current_frames < max_frames:
-                pad_shape = (max_frames - current_frames, ref_h, ref_w, ref_c)
-                black_pad = torch.zeros(pad_shape, dtype=img.dtype, device=img.device)
-                img = torch.cat([img, black_pad], dim=0)
+                last_frame = img[-1:]
+                freeze_pad = last_frame.repeat(max_frames - current_frames, 1, 1, 1)
+                img = torch.cat([img, freeze_pad], dim=0)
             padded_list.append(img)
 
         if direction in ("right", "left"):
@@ -92,6 +91,7 @@ class PainterImageConcatExtension(ComfyExtension):
 
 async def comfy_entrypoint() -> PainterImageConcatExtension:
     return PainterImageConcatExtension()
+
 
 NODE_CLASS_MAPPINGS = {
     "PainterImageConcat": PainterImageConcat
