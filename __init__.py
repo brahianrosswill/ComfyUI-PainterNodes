@@ -34,6 +34,7 @@ NODE_MODULES = [
     ("PainterResizeImages", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
     ("PainterImageConcat", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
     ("PainterV2AV", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
+    ("PainterLTXVAddGuide", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
 ]
 
 # Initialize global mappings
