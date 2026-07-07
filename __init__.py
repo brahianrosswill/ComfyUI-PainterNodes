@@ -17,7 +17,7 @@ NODE_MODULES = [
     ("PainterLongVideo", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
     ("PainterSequentialF2V", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
     ("PainterFluxImageEdit", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterQwenImageEdit", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"), # <--- 修改了这里
+    ("PainterQwenImageEdit", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
     ("PainterVRAM", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
     ("PainterVideoCombine", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
     ("PainterVideoUpscale", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
@@ -35,6 +35,8 @@ NODE_MODULES = [
     ("PainterImageConcat", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
     ("PainterV2AV", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
     ("PainterLTXVAddGuide", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
+    ("PainterLTX2Vomni", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
+    ("PainterFrameExtractor", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
 ]
 
 # Initialize global mappings
@@ -75,7 +77,7 @@ if failed_modules:
 
 # Print success message with green color (ANSI escape code)
 # Green color: \033[92m, Reset: \033[0m
-success_msg = f"\033[92m[PainterNodes] Loaded {len(NODE_CLASS_MAPPINGS)} nodes successfully!🎉\033[0m"
+success_msg = f"\033[92m[PainterNodes] Loaded {len(NODE_CLASS_MAPPINGS)} nodes successfully!\033[0m"
 print(success_msg)
 
 __version__ = "1.0.0"
