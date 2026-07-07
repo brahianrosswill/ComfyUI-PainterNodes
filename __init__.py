@@ -37,6 +37,7 @@ NODE_MODULES = [
     ("PainterLTXVAddGuide", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
     ("PainterLTX2Vomni", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
     ("PainterFrameExtractor", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
+    ("PainterFrameRateConverter", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
 ]
 
 # Initialize global mappings
