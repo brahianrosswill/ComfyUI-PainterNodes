@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import comfy.utils
 import comfy.model_management
@@ -9,6 +10,9 @@ from comfy_extras.nodes_lt import LTXVAddGuide, get_noise_mask, get_keyframe_idx
 class PainterLTX2Vomni:
     @classmethod
     def INPUT_TYPES(s):
+        """
+        定义节点的输入参数，包括正向/负向提示词、VAE模型、视频尺寸、长度等。
+        """
         return {
             "required": {
                 "positive": ("CONDITIONING",),
@@ -41,25 +45,85 @@ class PainterLTX2Vomni:
                 reference1_frame_idx, reference2_frame_idx,
                 start_image=None, end_image=None, source_video=None,
                 reference_image1=None, reference_image2=None):
+        """
+        执行节点的核心逻辑，处理视频和音频的 latent 编码及引导。
+        """
+        # 强制规范长度为 8n + 1
+        length = ((max(length, 1) - 1) // 8) * 8 + 1
         
         positive = node_helpers.conditioning_set_values(positive, {"frame_rate": frame_rate})
         negative = node_helpers.conditioning_set_values(negative, {"frame_rate": frame_rate})
         
         actual_length = length
+        video_frames = 0
+        video_latent_frame_index_start = 0
+        
+        # LTXV 的时间轴缩放比例通常是 8
+        time_scale_factor = video_vae.downscale_index_formula[0]
         if source_video is not None:
             video_frames = source_video.shape[0]
+            orig_video_frames = video_frames # 记录原始帧数，用于识别 padding 区域
             if video_frames > length:
+                # 如果源视频长度超过设定长度，进行截取
                 source_video = source_video[:length]
+                video_frames = length
                 actual_length = length
+                orig_video_frames = length
             else:
                 actual_length = video_frames
-            
+                # 第一种方案: 在 vae.encode 之前 padding
+                pad_count = int(length - video_frames) 
+                
+                if pad_count > 0:
+                    padding_list = []
+                    # 确保源视频至少有一帧，否则无法提取末帧进行扩展
+                    if video_frames > 0:
+                        last_frame = source_video[-1:].clone()  
+                        
+                        for _ in range(pad_count):
+                            p = last_frame[0:1] + torch.randn_like(last_frame[0:1]) * 0.025
+                            padding_list.append(torch.clamp(p, 0.0, 1.0))
+
+                    # 只有当列表非空时才进行合并，防止 ValueError: torch.cat(): expected a non-empty list
+                    if len(padding_list) > 0:
+                        padding = torch.cat(padding_list, dim=0)
+                        source_video = torch.cat([source_video, padding], dim=0) 
+                        actual_length = length
+                
+            # VAE编码
             pixels = comfy.utils.common_upscale(
                 source_video.movedim(-1, 1), width, height, "bilinear", "center"
             ).movedim(1, -1)
             encode_pixels = pixels[:, :, :, :3]
             t = video_vae.encode(encode_pixels)
-            latent = {"samples": t}
+
+            # 改进：对 padding 区域注入结构化 Latent 噪声，使其在后续采样时能够“动起来”
+            if source_video.shape[0] > orig_video_frames:
+                # 计算 padding 在 latent 空间对应的起始索引
+                pad_latent_start = (orig_video_frames - 1) // time_scale_factor + 1
+                video_latent_frame_index_start = orig_video_frames
+                if pad_latent_start < t.shape[2]:
+                    # 获取 padding 区域的形状
+                    pad_slice = t[:, :, pad_latent_start:, :, :]
+                    b, c, f, h, w = pad_slice.shape
+                    
+                    # 生成一个基础噪声平面 [b, c, 1, h, w]
+                    base_noise = torch.randn((b, c, 1, h, w), device=t.device, dtype=t.dtype)
+                    
+                    # 混合少量噪声增强动态
+                    t[:, :, pad_latent_start:, :, :] = pad_slice * 0.85 + base_noise * 0.15
+                    
+                    # print(f"[A]PainterLTX2Vomni: 已为 {f} 帧 Latent 区域注入结构化平移噪声以激活运动。")
+                    # print(f"[B]PainterLTX2Vomni: video_latent_frame_index_start = {video_latent_frame_index_start} ")
+
+            # ==================================================================
+            # 不同的采样开始步数, 对于 padding 区域的影响较大 !
+            # 至少从第 3~4 步开始采样, 若从第 5 步开始采样, 延长区动态明显变低.
+            # ==================================================================
+            
+            latent_length = t.shape[2]
+            latent = {"samples": t }
+                
         else:
             latent_length = ((actual_length - 1) // 8) + 1
             latent = {
@@ -85,10 +149,22 @@ class PainterLTX2Vomni:
             )
         
         if end_image is not None:
-            positive, negative, latent = self._add_guide(
-                positive, negative, video_vae, latent, end_image, -1, strength
-            )
-        
+            if video_latent_frame_index_start > 0:
+                # 如果有延长, 侧需在延长处打关键尾帧
+                n = ((video_latent_frame_index_start - 1) // time_scale_factor) * time_scale_factor + 1
+                positive, negative, latent = self._add_guide(
+                    positive, negative, video_vae, latent, end_image, n, strength
+                )
+                # 该尾帧属于参考帧, 权重减半
+                positive, negative, latent = self._add_guide(
+                    positive, negative, video_vae, latent, end_image, -1, strength * 0.15
+                )
+            else:
+                # 正常尾帧
+                positive, negative, latent = self._add_guide(
+                    positive, negative, video_vae, latent, end_image, -1, strength
+                )
+            
         if reference_image1 is not None:
             positive, negative, latent = self._add_guide(
                 positive, negative, video_vae, latent, reference_image1, reference1_frame_idx, strength
@@ -98,10 +174,14 @@ class PainterLTX2Vomni:
             positive, negative, latent = self._add_guide(
                 positive, negative, video_vae, latent, reference_image2, reference2_frame_idx, strength
             )
+            
         
         return (positive, negative, latent, audio_latent)
     
     def _add_guide(self, positive, negative, vae, latent, image, frame_idx, strength):
+        """
+        向潜空间（Latent）中添加图像引导信息，支持特定帧索引和强度控制。
+        """
         scale_factors = vae.downscale_index_formula
         latent_image = latent["samples"]
         noise_mask = get_noise_mask(latent)
