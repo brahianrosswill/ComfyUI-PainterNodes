@@ -4,7 +4,7 @@ import gc
 import time
 import random
 
-# Attempt to import pynvml; if missing, disable auto mode
+# Try to import pynvml; if missing, disable auto mode
 try:
     import pynvml
     pynvml.nvmlInit()
@@ -20,7 +20,7 @@ _RESERVED_RANDOM_STATE = random.getstate()
 random.setstate(_INITIAL_RANDOM_STATE)
 
 def gpu_memory_info():
-    """Return (total_GB, used_GB) for GPU-0.  None if unavailable."""
+    """Return (total_GB, used_GB) for GPU-0. None if unavailable."""
     if not PYNVML_AVAILABLE:
         return None, None
     try:
