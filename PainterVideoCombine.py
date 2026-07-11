@@ -1,5 +1,6 @@
 import os
 import subprocess
+import urllib.parse
 import numpy as np
 import folder_paths
 import tempfile
@@ -53,6 +54,12 @@ class PainterVideoCombine:
         file_name = f"{filename}_{counter:05}_.{ext}"
         file_path = os.path.join(full_output_folder, file_name)
 
+        # Sandbox validation: force output path inside ComfyUI output directory
+        abs_output_dir = os.path.abspath(output_dir)
+        abs_file_path = os.path.abspath(file_path)
+        if not abs_file_path.startswith(abs_output_dir + os.sep) and abs_file_path != abs_output_dir:
+            raise ValueError("Output path must be within ComfyUI output directory")
+
         # Build metadata
         video_metadata = {}
         if prompt is not None:
@@ -70,7 +77,7 @@ class PainterVideoCombine:
         n, h, w, c = images_np.shape
         w, h = (w // 2) * 2, (h // 2) * 2
 
-        # Build FFmpeg arguments
+        # Build FFmpeg arguments using list format (shell=False, no command injection)
         args = [
             ffmpeg_path, "-y",
             "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(frame_rate), "-i", "-"
@@ -161,8 +168,13 @@ class PainterVideoCombine:
             if metadata_path and os.path.exists(metadata_path):
                 os.remove(metadata_path)
 
+        # URL-encode filename for frontend preview to prevent + being decoded as space in query params
+        # The actual disk file keeps the original name with + intact
+        ui_filename = urllib.parse.quote(file_name, safe='')
+        ui_subfolder = urllib.parse.quote(subfolder, safe='') if subfolder else subfolder
+
         return {
-            "ui": {"painter_output": [{"filename": file_name, "subfolder": subfolder, "type": "output"}]},
+            "ui": {"painter_output": [{"filename": ui_filename, "subfolder": ui_subfolder, "type": "output"}]},
             "result": (file_name,)
         }
 
