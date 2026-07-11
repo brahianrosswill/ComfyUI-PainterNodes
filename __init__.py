@@ -1,85 +1,192 @@
-import traceback
-import importlib
-
-# Define list of node modules to import
-NODE_MODULES = [
-    ("PainterPrompt", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterI2V", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterI2VAdvanced", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterAI2V", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterAV2V", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterSampler", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterSamplerLTXV", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterLTX2V", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterLTX2VPlus", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterFLF2V", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterMultiF2V", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterLongVideo", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterSequentialF2V", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterFluxImageEdit", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterQwenImageEdit", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterVRAM", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterVideoCombine", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterVideoUpscale", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterVideoInfo", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterFrameCount", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterImageLoad", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterImageFromBatch", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterCombineFromBatch", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterAudioLength", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterAudioCut", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterS2Vplus", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterHumoAV2V", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterHumoAI2V", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterResizeImages", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterImageConcat", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterV2AV", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterLTXVAddGuide", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterLTX2Vomni", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterFrameExtractor", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-    ("PainterFrameRateConverter", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"),
-]
-
-# Initialize global mappings
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
-# Track failed modules
-failed_modules = []
 
-# Import each node module individually with error handling
-for module_name, class_map_name, display_name_map_name in NODE_MODULES:
-    try:
-        # Use importlib for safe relative import
-        full_module_name = f"{__name__}.{module_name}"
-        module = importlib.import_module(full_module_name)
-        
-        # Get mapping dictionaries from the module
-        class_mappings = getattr(module, class_map_name, {})
-        display_name_mappings = getattr(module, display_name_map_name, {})
-        
-        # Merge to global mappings
-        NODE_CLASS_MAPPINGS.update(class_mappings)
-        NODE_DISPLAY_NAME_MAPPINGS.update(display_name_mappings)
-        
-    except Exception as e:
-        # Record failed module and its error info
-        failed_modules.append({
-            "name": module_name,
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        })
+def _register_module(module):
+    NODE_CLASS_MAPPINGS.update(getattr(module, "NODE_CLASS_MAPPINGS", {}))
+    NODE_DISPLAY_NAME_MAPPINGS.update(getattr(module, "NODE_DISPLAY_NAME_MAPPINGS", {}))
 
-# Print failed modules info if any
-if failed_modules:
-    print(f"[PainterNodes] Found {len(failed_modules)} failed modules:")
-    for fm in failed_modules:
-        print(f"\n[PainterNodes] Failed to import module {fm['name']}: {fm['error']}")
-        print(f"Detailed error information:\n{fm['traceback']}")
+# Static imports only - no dynamic import to avoid RCE scanner false positives
+try:
+    from . import PainterPrompt
+    _register_module(PainterPrompt)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterPrompt: {e}")
 
-# Print success message with green color (ANSI escape code)
-# Green color: \033[92m, Reset: \033[0m
-success_msg = f"\033[92m[PainterNodes] Loaded {len(NODE_CLASS_MAPPINGS)} nodes successfully!\033[0m"
-print(success_msg)
+try:
+    from . import PainterI2V
+    _register_module(PainterI2V)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterI2V: {e}")
+
+try:
+    from . import PainterI2VAdvanced
+    _register_module(PainterI2VAdvanced)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterI2VAdvanced: {e}")
+
+try:
+    from . import PainterAI2V
+    _register_module(PainterAI2V)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterAI2V: {e}")
+
+try:
+    from . import PainterAV2V
+    _register_module(PainterAV2V)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterAV2V: {e}")
+
+try:
+    from . import PainterSampler
+    _register_module(PainterSampler)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterSampler: {e}")
+
+try:
+    from . import PainterSequentialF2V
+    _register_module(PainterSequentialF2V)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterSequentialF2V: {e}")
+
+try:
+    from . import PainterVideoCombine
+    _register_module(PainterVideoCombine)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterVideoCombine: {e}")
+
+try:
+    from . import PainterVideoInfo
+    _register_module(PainterVideoInfo)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterVideoInfo: {e}")
+
+try:
+    from . import PainterVideoUpscale
+    _register_module(PainterVideoUpscale)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterVideoUpscale: {e}")
+
+try:
+    from . import PainterVRAM
+    _register_module(PainterVRAM)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterVRAM: {e}")
+
+try:
+    from . import PainterStringCleaner
+    _register_module(PainterStringCleaner)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterStringCleaner: {e}")
+
+try:
+    from . import PainterFrameRateConverter
+    _register_module(PainterFrameRateConverter)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterFrameRateConverter: {e}")
+
+try:
+    from . import PainterFrameExtractor
+    _register_module(PainterFrameExtractor)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterFrameExtractor: {e}")
+
+try:
+    from . import PainterLTX2Vomni
+    _register_module(PainterLTX2Vomni)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterLTX2Vomni: {e}")
+
+try:
+    from . import PainterV2AV
+    _register_module(PainterV2AV)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterV2AV: {e}")
+
+try:
+    from . import PainterImageConcat
+    _register_module(PainterImageConcat)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterImageConcat: {e}")
+
+try:
+    from . import PainterResizeImages
+    _register_module(PainterResizeImages)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterResizeImages: {e}")
+
+try:
+    from . import PainterFluxImageEdit
+    _register_module(PainterFluxImageEdit)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterFluxImageEdit: {e}")
+
+try:
+    from . import PainterQwenImageEdit
+    _register_module(PainterQwenImageEdit)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterQwenImageEdit: {e}")
+
+try:
+    from . import PainterAudioCut
+    _register_module(PainterAudioCut)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterAudioCut: {e}")
+
+try:
+    from . import PainterCombineFromBatch
+    _register_module(PainterCombineFromBatch)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterCombineFromBatch: {e}")
+
+try:
+    from . import PainterFLF2V
+    _register_module(PainterFLF2V)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterFLF2V: {e}")
+
+try:
+    from . import PainterFrameCount
+    _register_module(PainterFrameCount)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterFrameCount: {e}")
+
+try:
+    from . import PainterHumoAI2V
+    _register_module(PainterHumoAI2V)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterHumoAI2V: {e}")
+
+try:
+    from . import PainterHumoAV2V
+    _register_module(PainterHumoAV2V)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterHumoAV2V: {e}")
+
+try:
+    from . import PainterImageFromBatch
+    _register_module(PainterImageFromBatch)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterImageFromBatch: {e}")
+
+try:
+    from . import PainterLongVideo
+    _register_module(PainterLongVideo)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterLongVideo: {e}")
+
+try:
+    from . import PainterMultiF2V
+    _register_module(PainterMultiF2V)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterMultiF2V: {e}")
+
+try:
+    from . import PainterS2Vplus
+    _register_module(PainterS2Vplus)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterS2Vplus: {e}")
+
+print(f"\033[92m[PainterNodes] Loaded {len(NODE_CLASS_MAPPINGS)} nodes successfully!\033[0m")
 
 __version__ = "1.0.0"
 WEB_DIRECTORY = "./web/js"
