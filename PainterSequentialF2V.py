@@ -99,7 +99,7 @@ class PainterSequentialF2V:
         # VAE encode
         concat_latent_image = vae.encode(image[:, :, :, :3])
         
-        # Calculate latent dims
+        # Calculate latent dimensions
         spacial_scale = vae.spacial_compression_encode()
         latent_width = width // spacial_scale
         latent_height = height // spacial_scale
