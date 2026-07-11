@@ -11,8 +11,8 @@ from comfy_api.latest import ComfyExtension, io
 
 class PainterQwenImageEdit(io.ComfyNode):
     """
-    使用新版 Comfy API 的 Qwen 图像编辑节点。
-    无需任何 autogrow.js 即可实现多图输入的自动伸缩。
+    Qwen image editing node using the new Comfy API.
+    Auto-growing image inputs without any autogrow.js.
     """
 
     @classmethod
@@ -27,10 +27,9 @@ class PainterQwenImageEdit(io.ComfyNode):
                 io.String.Input("prompt", multiline=True),
                 io.Int.Input("batch_size", default=1, min=1, max=64),
                 io.Vae.Input("vae", optional=True),
-                io.Mask.Input("image0_mask", optional=True, tooltip="作用于第一张输入图（image_1）的遮罩"),
+                io.Mask.Input("image0_mask", optional=True, tooltip="Mask applied to the first input image (image_1)"),
                 io.Int.Input("width", default=1024, min=512, max=4096, step=8),
                 io.Int.Input("height", default=1024, min=512, max=4096, step=8),
-                # 声明自动伸缩输入端口：前缀为 image_，范围在 1 到 10 张图之间
                 io.Autogrow.Input("images", optional=True,
                     template=io.Autogrow.TemplatePrefix(
                         input=io.Image.Input("image", optional=True),
@@ -50,7 +49,6 @@ class PainterQwenImageEdit(io.ComfyNode):
         target_latent_h = height // 8
         target_latent_w = width // 8
         
-        # 1. 动态收集并按数字顺序（image_1, image_2...）正确排序输入的图片
         collected_images = []
         if images:
             def get_num(key):
@@ -58,7 +56,6 @@ class PainterQwenImageEdit(io.ComfyNode):
                     return int(key.split("_")[-1])
                 except ValueError:
                     return 0
-            # 使用自定义 key 排序，防止出现字符串排序导致 image_10 排在 image_2 前面的问题
             for name in sorted(images.keys(), key=get_num):
                 img = images[name]
                 if img is not None:
@@ -73,7 +70,6 @@ class PainterQwenImageEdit(io.ComfyNode):
         llama_template = "<|im_start|>system\nDescribe the key features of the input image (color, shape, size, texture, objects, background), then explain how the user's text instruction should alter or modify the image. Generate a new image that meets the user's requirements while maintaining consistency with the original input where appropriate.\n<|im_start|>user\n{}\n<|im_start|>assistant\n"
         image_prompt = ""
 
-        # 2. 遍历处理所有实际连接的图片
         for i, image in enumerate(collected_images):
             samples = image.movedim(-1, 1)
             current_total = samples.shape[3] * samples.shape[2]
@@ -118,7 +114,6 @@ class PainterQwenImageEdit(io.ComfyNode):
                     canvas[:, :, :resized_height_actual, :resized_width_actual] = resized_samples
                     s = canvas
                     
-                    # 仅在处理第一张图时应用 image1_mask
                     if i == 0 and image1_mask is not None:
                         mask = image1_mask
                         if mask.dim() == 2:
@@ -156,7 +151,6 @@ class PainterQwenImageEdit(io.ComfyNode):
                 ref_latent = vae.encode(image[:, :, :, :3])
                 ref_latents.append(ref_latent)
         
-        # 3. 文本编码与条件生成
         tokens = clip.tokenize(image_prompt + prompt, images=vl_images, llama_template=llama_template)
         conditioning = clip.encode_from_tokens_scheduled(tokens)
         
@@ -185,7 +179,6 @@ class PainterQwenImageEdit(io.ComfyNode):
         
         latent_out = {"samples": latent_samples}
         
-        # 4. 遮罩后续缩放与对齐
         if noise_mask is not None:
             if noise_mask.dim() == 2:
                 noise_mask = noise_mask.unsqueeze(0).unsqueeze(0)
@@ -207,7 +200,6 @@ class PainterQwenImageEdit(io.ComfyNode):
             
             latent_out["noise_mask"] = noise_mask
         
-        # 5. 处理 Batch Size 复制
         if batch_size > 1:
             conditioning = conditioning * batch_size
             negative_conditioning = negative_conditioning * batch_size
@@ -232,7 +224,6 @@ class PainterQwenExtension(ComfyExtension):
 async def comfy_entrypoint() -> PainterQwenExtension:
     return PainterQwenExtension()
 
-# 把这两段加在 PainterQwenImageEdit.py 文件的最底下
 NODE_CLASS_MAPPINGS = {
     "PainterQwenImageEdit": PainterQwenImageEdit
 }
