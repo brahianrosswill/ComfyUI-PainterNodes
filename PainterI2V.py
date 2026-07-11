@@ -37,45 +37,45 @@ class PainterI2V(io.ComfyNode):
     @classmethod
     def execute(cls, positive, negative, vae, width, height, length, batch_size,
                 motion_amplitude=1.15, start_image=None, clip_vision_output=None) -> io.NodeOutput:
-        # 1. 严格的零latent初始化（4步LoRA的生命线）
+        # 1. Strict zero latent initialization (lifeline for 4-step LoRAs)
         latent = torch.zeros([batch_size, 16, ((length - 1) // 4) + 1, height // 8, width // 8], 
                            device=comfy.model_management.intermediate_device())
         
         if start_image is not None:
-            # 单帧输入处理
+            # Single frame input processing
             start_image = start_image[:1]
             start_image = comfy.utils.common_upscale(
                 start_image.movedim(-1, 1), width, height, "bilinear", "center"
             ).movedim(1, -1)
             
-            # 创建序列：首帧真实，后续0.5灰
+            # Create sequence: first frame real, subsequent 0.5 gray
             image = torch.ones((length, height, width, start_image.shape[-1]), 
                              device=start_image.device, dtype=start_image.dtype) * 0.5
             image[0] = start_image[0]
             
             concat_latent_image = vae.encode(image[:, :, :, :3])
             
-            # 单帧mask：仅约束首帧
+            # Single frame mask: only constrain first frame
             mask = torch.ones((1, 1, latent.shape[2], concat_latent_image.shape[-2], 
                              concat_latent_image.shape[-1]), 
                             device=start_image.device, dtype=start_image.dtype)
             mask[:, :, 0] = 0.0
             
-            # 2. 运动幅度增强（亮度保护核心算法）
+            # 2. Motion amplitude enhancement (brightness protection core algorithm)
             if motion_amplitude > 1.0:
-                base_latent = concat_latent_image[:, :, 0:1]      # 首帧
-                gray_latent = concat_latent_image[:, :, 1:]       # 灰帧
+                base_latent = concat_latent_image[:, :, 0:1]      # First frame
+                gray_latent = concat_latent_image[:, :, 1:]       # Gray frames
                 
                 diff = gray_latent - base_latent
                 diff_mean = diff.mean(dim=(1, 3, 4), keepdim=True)
                 diff_centered = diff - diff_mean
                 scaled_latent = base_latent + diff_centered * motion_amplitude + diff_mean
                 
-                # Clamp & 组合
+                # Clamp and combine
                 scaled_latent = torch.clamp(scaled_latent, -6, 6)
                 concat_latent_image = torch.cat([base_latent, scaled_latent], dim=2)
             
-            # 3. 注入到conditioning
+            # 3. Inject into conditioning
             positive = node_helpers.conditioning_set_values(
                 positive, {"concat_latent_image": concat_latent_image, "concat_mask": mask}
             )
@@ -83,7 +83,7 @@ class PainterI2V(io.ComfyNode):
                 negative, {"concat_latent_image": concat_latent_image, "concat_mask": mask}
             )
 
-            # 4. 参考帧增强
+            # 4. Reference frame enhancement
             ref_latent = vae.encode(start_image[:, :, :, :3])
             positive = node_helpers.conditioning_set_values(positive, {"reference_latents": [ref_latent]}, append=True)
             negative = node_helpers.conditioning_set_values(negative, {"reference_latents": [torch.zeros_like(ref_latent)]}, append=True)
@@ -106,12 +106,11 @@ async def comfy_entrypoint() -> PainterI2VExtension:
     return PainterI2VExtension()
 
 
-# 节点注册映射
+# Node registration mappings
 NODE_CLASS_MAPPINGS = {
     "PainterI2V": PainterI2V,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "PainterI2V": "PainterI2V (Wan2.2 Slow-Motion Fix)",
+    "PainterI2V": "PainterI2V",
 }
-
