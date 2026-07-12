@@ -9,8 +9,8 @@ class PainterStringCleaner:
         return {
             "required": {
                 "text": ("STRING", {"multiline": True}),
-                "eliminate_pattern": ("STRING", {"default": "【】"}),
-                "replace_with": ("STRING", {"default": "话"}),
+                "eliminate_pattern": ("STRING", {"default": "[]"}),
+                "replace_with": ("STRING", {"default": ""}),
             }
         }
 
