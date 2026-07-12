@@ -5,7 +5,6 @@ def _register_module(module):
     NODE_CLASS_MAPPINGS.update(getattr(module, "NODE_CLASS_MAPPINGS", {}))
     NODE_DISPLAY_NAME_MAPPINGS.update(getattr(module, "NODE_DISPLAY_NAME_MAPPINGS", {}))
 
-# Static imports only - no dynamic import to avoid RCE scanner false positives
 try:
     from . import PainterPrompt
     _register_module(PainterPrompt)
@@ -186,9 +185,15 @@ try:
 except Exception as e:
     print(f"[PainterNodes] Failed to import PainterS2Vplus: {e}")
 
+try:
+    from . import PainterTextOverlay
+    _register_module(PainterTextOverlay)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterTextOverlay: {e}")
+
 print(f"\033[92m[PainterNodes] Loaded {len(NODE_CLASS_MAPPINGS)} nodes successfully!\033[0m")
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 WEB_DIRECTORY = "./web/js"
 
 __all__ = [
