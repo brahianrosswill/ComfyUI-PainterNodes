@@ -1,0 +1,14 @@
+[project]
+name = "comfyui-painternodes"
+description = "Video generation nodes for LTX, Wan2.2, Bernini, NAVA, and utility nodes."
+version = "1.0.0"
+license = { file = "LICENSE" }
+dependencies = ["soundfile>=0.12.1", "numpy>=1.21.0"]
+
+[project.urls]
+Repository = "https://github.com/princepainter/ComfyUI-PainterNodes"
+
+[tool.comfy]
+PublisherId = "princepainter"
+DisplayName = "ComfyUI-PainterNodes"
+Icon = ""
