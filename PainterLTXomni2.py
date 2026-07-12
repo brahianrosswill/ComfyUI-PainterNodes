@@ -203,5 +203,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "PainterLTXomni2": "Painter LTX Omni 2"
+    "PainterLTXomni2": "Painter LTX Omni by Master"
 }
