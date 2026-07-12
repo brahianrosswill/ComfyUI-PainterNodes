@@ -193,7 +193,7 @@ except Exception as e:
 
 print(f"\033[92m[PainterNodes] Loaded {len(NODE_CLASS_MAPPINGS)} nodes successfully!\033[0m")
 
-__version__ = "1.1.6"
+__version__ = "1.1.7"
 WEB_DIRECTORY = "./web/js"
 
 __all__ = [
