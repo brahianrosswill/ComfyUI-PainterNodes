@@ -7,7 +7,7 @@
 
 ### 📖 简介
 
-## **Painter Nodes** 是一个为 ComfyUI 设计的综合性自定义节点合集，专为高级图像和视频生成工作流打造。本插件目前包集成了 26 个强大的节点（后续新增节点都会放进此整合包），涵盖图生视频、文生图、图片编辑、音频驱动视频生成、视频对口型、提示词管理、显存优化等功能。
+## **Painter Nodes** 是一个为 ComfyUI 设计的综合性自定义节点合集，专为高级图像和视频生成工作流打造。本插件目前包集成了多个强大的节点（后续新增节点都会放进此整合包），涵盖图生视频、文生视频，视频编辑，视频配音，参考生视频，文生图、图片编辑、音频驱动视频生成、视频对口型等功能。
 
 ## ✨更新日志：
 
@@ -49,19 +49,7 @@
 
 ### ✨ 功能特性
 
-| 类别 | 节点 | 说明 |
-|------|------|------|
-| **提示词** | PainterPrompt | 多提示词管理，支持列表 |
-| **图生视频** | PainterI2V, PainterI2VAdvanced | Wan2.2 图生视频，修复慢动作问题 |
-| **音频驱动** | PainterAI2V, PainterAV2V | 音频驱动视频生成 (InfiniteTalk) |
-| **采样器** | PainterSampler, PainterSamplerLTXV | 高级双模型和 LTXV 采样器 |
-| **LTXV** | PainterLTX2V, PainterLTX2VPlus | LTXV 潜空间生成，支持帧控制 |
-| **帧生成视频** | PainterFLF2V, PainterMultiF2V, PainterLongVideo | 首尾帧/多帧/长视频生成 |
-| **图像编辑** | PainterFluxImageEdit, PainterQwenImageEdit | Flux/Qwen 图像编辑，动态输入 |
-| **显存管理** | PainterVRAM | GPU 显存管理工具 |
-| **视频处理** | PainterVideoCombine, PainterVideoUpscale, PainterVideoInfo | 视频处理工具 |
-| **图像工具** | PainterFrameCount, PainterImageLoad, PainterImageFromBatch, PainterCombineFromBatch | 图像工具集 |
-| **音频工具** | PainterAudioLength, PainterAudioCut | 音频处理工具 |
+请自行探索
 
 ### 🚀 安装方法
 
