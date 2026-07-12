@@ -14,11 +14,11 @@ class PainterTextOverlay:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "text": ("STRING", {"multiline": False, "default": ""}),
-                "x_margin": ("INT", {"default": 20, "min": 0, "max": 8192, "step": 1}),
+                "text": ("STRING", {"multiline": False, "default": "video-1"}),
+                "x_margin": ("INT", {"default": 50, "min": 0, "max": 8192, "step": 1}),
                 "y_margin": ("INT", {"default": 20, "min": 0, "max": 8192, "step": 1}),
-                "font_size": ("INT", {"default": 32, "min": 8, "max": 256, "step": 1}),
-                "font_color": ("COLOR", {"default": "#ffffff"}),
+                "font_size": ("INT", {"default": 50, "min": 8, "max": 256, "step": 1}),
+                "font_color": ("COLOR", {"default": "#abdb29"}),
             }
         }
 
