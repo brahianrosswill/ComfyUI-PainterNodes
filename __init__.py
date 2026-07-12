@@ -90,10 +90,10 @@ except Exception as e:
     print(f"[PainterNodes] Failed to import PainterFrameExtractor: {e}")
 
 try:
-    from . import PainterLTX2Vomni
-    _register_module(PainterLTX2Vomni)
+    from . import PainterLTXomni2
+    _register_module(PainterLTXomni2)
 except Exception as e:
-    print(f"[PainterNodes] Failed to import PainterLTX2Vomni: {e}")
+    print(f"[PainterNodes] Failed to import PainterLTXomni2: {e}")
 
 try:
     from . import PainterV2AV
@@ -193,7 +193,7 @@ except Exception as e:
 
 print(f"\033[92m[PainterNodes] Loaded {len(NODE_CLASS_MAPPINGS)} nodes successfully!\033[0m")
 
-__version__ = "1.1.8"
+__version__ = "1.1.9"
 WEB_DIRECTORY = "./web/js"
 
 __all__ = [
