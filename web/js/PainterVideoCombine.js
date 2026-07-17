@@ -6,6 +6,9 @@ app.registerExtension({
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (nodeData.name !== "PainterVideoCombine") return;
 
+        const SIDE_MARGIN = 15;
+        const BOTTOM_MARGIN = 20;
+
         const onDrawForeground = nodeType.prototype.onDrawForeground;
         nodeType.prototype.onDrawForeground = function (ctx) {
             onDrawForeground?.apply(this, arguments);
@@ -27,6 +30,19 @@ app.registerExtension({
                 }
             }
             return height;
+        }
+
+        function getPreviewWidget(node) {
+            return node.widgets?.find(w => w.name === "painter_preview");
+        }
+
+        function getPreviewTop(node) {
+            const widget = getPreviewWidget(node);
+            if (widget) {
+                if (typeof widget.y === "number" && widget.y > 0) return widget.y;
+                if (typeof widget.last_y === "number" && widget.last_y > 0) return widget.last_y;
+            }
+            return getHeaderAndWidgetHeight(node);
         }
 
         function findVideoElement(node) {
@@ -69,7 +85,7 @@ app.registerExtension({
                     if (video) {
                         video.pause();
                         video.currentTime = 0;
-                        video.load(); 
+                        video.load();
                         video.play();
                     }
                 }
@@ -81,22 +97,21 @@ app.registerExtension({
 
         nodeType.prototype.onResize = function (size) {
             if (this.painter_aspect) {
-                const headHeight = getHeaderAndWidgetHeight(this);
-                const targetVideoHeight = size[0] / this.painter_aspect;
-                const totalHeight = Math.ceil(headHeight + targetVideoHeight);
+                const top = getPreviewTop(this);
+                const targetVideoHeight = (size[0] - SIDE_MARGIN * 2) / this.painter_aspect;
+                const totalHeight = Math.ceil(top + targetVideoHeight + BOTTOM_MARGIN);
 
                 if (Math.abs(size[1] - totalHeight) > 0.5) {
                     size[1] = totalHeight;
                 }
             }
-            
-            const widget = this.widgets?.find(w => w.name === "painter_preview");
+
+            const widget = getPreviewWidget(this);
             if (widget?.element) {
-                // Fix: Use 100% width to fit parent container instead of fixed pixel size
                 widget.element.style.width = "100%";
                 widget.element.style.left = "0px";
-                const contentH = size[1] - getHeaderAndWidgetHeight(this);
-                widget.element.style.height = `${contentH}px`;
+                const contentH = size[1] - getPreviewTop(this) - BOTTOM_MARGIN;
+                widget.element.style.height = `${Math.max(0, contentH)}px`;
             }
         };
 
@@ -114,8 +129,8 @@ app.registerExtension({
         };
 
         function updateVideoPreview(node, data) {
-            let widget = node.widgets?.find(w => w.name === "painter_preview");
-            
+            let widget = getPreviewWidget(node);
+
             if (!widget) {
                 const element = document.createElement("div");
                 element.style.display = "flex";
@@ -125,7 +140,7 @@ app.registerExtension({
                 element.style.margin = "0px";
                 element.style.overflow = "hidden";
                 element.style.boxSizing = "border-box";
-                
+
                 widget = node.addDOMWidget("painter_preview", "preview", element, {
                     serialize: false, hideOnZoom: false
                 });
@@ -136,14 +151,14 @@ app.registerExtension({
 
             const video = document.createElement("video");
             video.src = url;
-            video.controls = false; 
-            video.loop = true; 
-            video.autoplay = true; 
+            video.controls = false;
+            video.loop = true;
+            video.autoplay = true;
             video.muted = true;
-            
+
             video.style.width = "100%";
             video.style.height = "100%";
-            video.style.objectFit = "cover"; 
+            video.style.objectFit = "cover";
             video.style.display = "block";
 
             const triggerCtx = (e) => {
@@ -161,8 +176,13 @@ app.registerExtension({
             video.onloadedmetadata = () => {
                 if (video.videoWidth && video.videoHeight) {
                     node.painter_aspect = video.videoWidth / video.videoHeight;
-                    node.onResize(node.size);
-                    node.setDirtyCanvas(true, true);
+                    const applyResize = () => {
+                        node.onResize(node.size);
+                        node.setDirtyCanvas(true, true);
+                    };
+                    applyResize();
+                    setTimeout(applyResize, 60);
+                    setTimeout(applyResize, 250);
                 }
             };
 
