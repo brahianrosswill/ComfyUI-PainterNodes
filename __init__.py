@@ -138,6 +138,12 @@ except Exception as e:
     print(f"[PainterNodes] Failed to import PainterAudioCut: {e}")
 
 try:
+    from . import PainterBerniniUpscale
+    _register_module(PainterBerniniUpscale)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterBerniniUpscale: {e}")
+
+try:
     from . import PainterCombineFromBatch
     _register_module(PainterCombineFromBatch)
 except Exception as e:
