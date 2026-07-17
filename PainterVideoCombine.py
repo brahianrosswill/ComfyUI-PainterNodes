@@ -25,6 +25,7 @@ class PainterVideoCombine:
                 "frame_rate": ("FLOAT", {"default": 24, "min": 1, "max": 240, "step": 0.1, "display": "number"}),
                 "format": (["video/h264-mp4", "video/webm", "image/gif"],),
                 "filename_prefix": ("STRING", {"default": "Video"}),
+                "save_workflow_info": ("BOOLEAN", {"default": True}),
             },
             "optional": {
                 "audio": ("AUDIO",),
@@ -36,13 +37,13 @@ class PainterVideoCombine:
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("filename",)
+    RETURN_TYPES = ("INT", "FLOAT")
+    RETURN_NAMES = ("frame_count", "frame_rate")
     OUTPUT_NODE = True
     CATEGORY = "Painter/Video"
     FUNCTION = "combine_video"
 
-    def combine_video(self, images, frame_rate, format, filename_prefix="Painter", audio=None, 
+    def combine_video(self, images, frame_rate, format, filename_prefix="Painter", save_workflow_info=True, audio=None,
                       prompt=None, extra_pnginfo=None, unique_id=None):
         pbar = ProgressBar(len(images))
         output_dir = folder_paths.get_output_directory()
@@ -54,21 +55,19 @@ class PainterVideoCombine:
         file_name = f"{filename}_{counter:05}_.{ext}"
         file_path = os.path.join(full_output_folder, file_name)
 
-        # Sandbox validation: force output path inside ComfyUI output directory
         abs_output_dir = os.path.abspath(output_dir)
         abs_file_path = os.path.abspath(file_path)
         if not abs_file_path.startswith(abs_output_dir + os.sep) and abs_file_path != abs_output_dir:
             raise ValueError("Output path must be within ComfyUI output directory")
 
-        # Build metadata
         video_metadata = {}
-        if prompt is not None:
-            video_metadata["prompt"] = json.dumps(prompt)
-        if extra_pnginfo is not None:
-            for x in extra_pnginfo:
-                video_metadata[x] = extra_pnginfo[x]
+        if save_workflow_info:
+            if prompt is not None:
+                video_metadata["prompt"] = json.dumps(prompt)
+            if extra_pnginfo is not None:
+                for x in extra_pnginfo:
+                    video_metadata[x] = extra_pnginfo[x]
 
-        # Data validation
         images_np = images.cpu().numpy()
         if not np.isfinite(images_np).all():
             images_np = np.nan_to_num(images_np, nan=0.0, posinf=1.0, neginf=0.0)
@@ -77,7 +76,6 @@ class PainterVideoCombine:
         n, h, w, c = images_np.shape
         w, h = (w // 2) * 2, (h // 2) * 2
 
-        # Build FFmpeg arguments using list format (shell=False, no command injection)
         args = [
             ffmpeg_path, "-y",
             "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(frame_rate), "-i", "-"
@@ -106,7 +104,6 @@ class PainterVideoCombine:
         else:
             args += ["-vf", "split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"]
 
-        # Add metadata if available
         metadata_path = None
         if video_metadata:
             try:
@@ -117,30 +114,28 @@ class PainterVideoCombine:
                 metadata = metadata.replace("=", "\\=")
                 metadata = metadata.replace("\n", "\\\n")
                 metadata = "comment=" + metadata
-                
+
                 metadata_path = os.path.join(tempfile.gettempdir(), f"painter_metadata_{unique_id}.txt")
                 with open(metadata_path, "w", encoding="utf-8") as f:
                     f.write(";FFMETADATA1\n")
                     f.write(metadata)
-                
-                # Insert metadata input into ffmpeg args
+
                 args = args[:1] + ["-i", metadata_path] + args[1:] + ["-metadata", "creation_time=now"]
             except Exception as e:
                 print(f"Warning: Metadata processing failed: {e}")
 
         args.append(file_path)
 
-        # Use temp file to avoid pipe deadlock
         with tempfile.NamedTemporaryFile(mode='wb', suffix='.raw', delete=False) as temp_video:
             temp_video_path = temp_video.name
-            
+
             for i, frame in enumerate(images_np):
                 temp_video.write(frame[:h, :w, :].tobytes())
                 pbar.update(1)
-            
+
             temp_video.flush()
             os.fsync(temp_video.fileno())
-        
+
         try:
             with open(temp_video_path, 'rb') as f:
                 process = subprocess.Popen(
@@ -149,33 +144,31 @@ class PainterVideoCombine:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE
                 )
-                
+
                 stdout, stderr = process.communicate(timeout=60)
-                
+
                 if process.returncode != 0:
                     error_msg = stderr.decode('utf-8', errors='ignore')
                     raise RuntimeError(f"FFmpeg failed:\n{error_msg}")
-            
+
             print(f"Video created!: {n} frames, {w}x{h}, {frame_rate}fps -> {file_name}")
-            
+
         finally:
             if os.path.exists(temp_video_path):
                 os.remove(temp_video_path)
-            
+
             if audio_temp_path and os.path.exists(audio_temp_path):
                 os.remove(audio_temp_path)
-                
+
             if metadata_path and os.path.exists(metadata_path):
                 os.remove(metadata_path)
 
-        # URL-encode filename for frontend preview to prevent + being decoded as space in query params
-        # The actual disk file keeps the original name with + intact
         ui_filename = urllib.parse.quote(file_name, safe='')
         ui_subfolder = urllib.parse.quote(subfolder, safe='') if subfolder else subfolder
 
         return {
             "ui": {"painter_output": [{"filename": ui_filename, "subfolder": ui_subfolder, "type": "output"}]},
-            "result": (file_name,)
+            "result": (int(n), float(frame_rate))
         }
 
 
