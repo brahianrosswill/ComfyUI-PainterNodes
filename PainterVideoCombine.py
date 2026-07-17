@@ -76,19 +76,25 @@ class PainterVideoCombine:
         n, h, w, c = images_np.shape
         w, h = (w // 2) * 2, (h // 2) * 2
 
+        video_duration = n / frame_rate
+
         args = [
             ffmpeg_path, "-y",
             "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(frame_rate), "-i", "-"
         ]
 
         audio_temp_path = None
+        audio_duration = 0.0
         if audio is not None:
             try:
                 wav_tensor = audio['waveform']
                 wav_data = wav_tensor[0].cpu().numpy().transpose() if len(wav_tensor.shape) == 3 else wav_tensor.cpu().numpy().transpose()
+                audio_duration = wav_data.shape[0] / audio['sample_rate']
+
                 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
                     sf.write(temp_audio.name, wav_data, audio['sample_rate'], format='WAV')
                     audio_temp_path = temp_audio.name
+
                 args += ["-i", audio_temp_path]
             except Exception as e:
                 print(f"Warning: Audio processing failed: {e}")
@@ -96,13 +102,22 @@ class PainterVideoCombine:
         if ext == "mp4":
             args += ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "faster"]
             if audio_temp_path:
-                args += ["-c:a", "aac", "-shortest"]
+                args += ["-c:a", "aac"]
         elif ext == "webm":
             args += ["-c:v", "libvpx-vp9", "-crf", "30", "-b:v", "0"]
             if audio_temp_path:
-                args += ["-c:a", "libvorbis", "-shortest"]
+                args += ["-c:a", "libvorbis"]
         else:
             args += ["-vf", "split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"]
+
+        if audio_temp_path:
+            if audio_duration < video_duration:
+                pad_duration = video_duration - audio_duration
+                args += ["-af", f"apad=pad_dur={pad_duration}"]
+            elif audio_duration > video_duration:
+                args += ["-af", f"atrim=duration={video_duration}"]
+
+            args += ["-shortest"]
 
         metadata_path = None
         if video_metadata:
