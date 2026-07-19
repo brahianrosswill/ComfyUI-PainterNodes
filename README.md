@@ -72,9 +72,9 @@
 
 4. 重启 ComfyUI
 
-#### 方法 2：ComfyUI-Manager（即将推出）
+#### 方法 2：ComfyUI-Manager
 
-在 ComfyUI-Manager 中搜索 "Painter Nodes" 直接安装。
+在 ComfyUI-Manager 中搜索 "PainterNodes" 直接安装。
 
 ### 📋 环境要求
 
