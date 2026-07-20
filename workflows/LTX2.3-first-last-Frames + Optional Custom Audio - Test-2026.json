@@ -1,0 +1,1879 @@
+{
+  "id": "3b9d7663-1e2d-48b9-9e03-6b415bad76c9",
+  "revision": 0,
+  "last_node_id": 270,
+  "last_link_id": 526,
+  "nodes": [
+    {
+      "id": 79,
+      "type": "MarkdownNote",
+      "pos": [
+        -600.0000605084609,
+        2250.0000258061905
+      ],
+      "size": [
+        550,
+        960
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Model Links",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.7",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "\n## LTX-2 Prompting Tips\n\n1. **Core Actions**: Describe events and actions as they occur over time  \n2. **Visual Details**: Describe all visual details you want to appear in the video  \n3. **Audio**: Describe sounds and dialogue needed for the scene\n\n## Report LTX-2 Issues\nTo report any issues when running this workflow, [go to GitHub](https://github.com/Lightricks/ComfyUI-LTXVideo/issues)\n\n\n## Model Links (for Local Users)\n\n**checkpoints**\n\n- [ltx-2.3-22b-distilled-fp8.safetensors](https://huggingface.co/Lightricks/LTX-2.3-fp8/resolve/main/ltx-2.3-22b-distilled-fp8.safetensors)\n\n**text_encoders**\n\n- [gemma_3_12B_it_fp4_mixed.safetensors](https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors)\n\n\n## Model Storage Location\n\n```\n📂 ComfyUI/\n├── 📂 models/\n│   ├── 📂 checkpoints/\n│   │   └── ltx-2.3-22b-distilled-fp8.safetensors\n│   └── 📂 text_encoders/\n│       └── gemma_3_12B_it_fp4_mixed.safetensors\n```\n\n## Report Issue\n\nNote: Please update ComfyUI first ([guide](https://docs.comfy.org/installation/update_comfyui)) and prepare required models. Desktop/Cloud updates follow stable releases, so some nightly-supported models may not be available yet.\n\n- Cannot run / runtime errors: [ComfyUI/issues](https://github.com/comfyanonymous/ComfyUI/issues)\n- UI / frontend issues: [ComfyUI_frontend/issues](https://github.com/Comfy-Org/ComfyUI_frontend/issues)\n- Workflow issues: [workflow_templates/issues](https://github.com/Comfy-Org/workflow_templates/issues)\n"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 245,
+      "type": "PainterAudioCut",
+      "pos": [
+        1797.418708278946,
+        1606.2389438481378
+      ],
+      "size": [
+        222.86328125,
+        174
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 513
+        }
+      ],
+      "outputs": [
+        {
+          "name": "trimmed_audio",
+          "type": "AUDIO",
+          "links": [
+            368
+          ]
+        },
+        {
+          "name": "total_frame",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-painternodes",
+        "ver": "31a5839b855fe53e2840b1bf7da1e133fb29415c",
+        "Node name for S&R": "PainterAudioCut",
+        "aux_id": "princepainter/Comfyui-PainterAudioCut",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        24,
+        0,
+        0,
+        121,
+        0
+      ]
+    },
+    {
+      "id": 243,
+      "type": "SolidMask",
+      "pos": [
+        2095.592677044356,
+        1688.7259605719917
+      ],
+      "size": [
+        218.8209686279297,
+        106
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "value",
+          "name": "value",
+          "type": "FLOAT",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        },
+        {
+          "label": "width",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": null
+        },
+        {
+          "label": "height",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "label": "遮罩",
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            371
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.8.2",
+        "Node name for S&R": "SolidMask",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        0,
+        960,
+        544
+      ]
+    },
+    {
+      "id": 225,
+      "type": "LTXAVTextEncoderLoader",
+      "pos": [
+        1534.4225983173983,
+        2418.9727243760444
+      ],
+      "size": [
+        214.7154296875,
+        106
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            315,
+            324
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.10.0",
+        "Node name for S&R": "LTXAVTextEncoderLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        },
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "models": [
+          {
+            "name": "gemma_3_12B_it_fp4_mixed.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors",
+            "directory": "text_encoders"
+          },
+          {
+            "name": "ltx-2.3-22b-distilled-fp8.safetensors",
+            "url": "https://huggingface.co/Lightricks/LTX-2.3-fp8/resolve/main/ltx-2.3-22b-distilled-fp8.safetensors",
+            "directory": "checkpoints"
+          }
+        ]
+      },
+      "widgets_values": [
+        "gemma_3_12B_it_fp4_mixed.safetensors",
+        "ltx-2.3-22b-dev-fp8.safetensors",
+        "default"
+      ]
+    },
+    {
+      "id": 244,
+      "type": "LTXVAudioVAEEncode",
+      "pos": [
+        2105.860219117221,
+        1594.4066199800175
+      ],
+      "size": [
+        201.4126953125,
+        46
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "audio",
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 368
+        },
+        {
+          "label": "audio_vae",
+          "name": "audio_vae",
+          "type": "VAE",
+          "link": 512
+        }
+      ],
+      "outputs": [
+        {
+          "label": "Audio Latent",
+          "name": "Audio Latent",
+          "type": "LATENT",
+          "links": [
+            370
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.7.0",
+        "Node name for S&R": "LTXVAudioVAEEncode",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [],
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 246,
+      "type": "LoadAudio",
+      "pos": [
+        1475.20469613414,
+        1606.2869988590369
+      ],
+      "size": [
+        282.798828125,
+        136
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "audio",
+          "name": "audio",
+          "type": "COMBO",
+          "widget": {
+            "name": "audio"
+          },
+          "link": null
+        },
+        {
+          "label": "audioUI",
+          "name": "audioUI",
+          "type": "AUDIO_UI",
+          "widget": {
+            "name": "audioUI"
+          },
+          "link": null
+        },
+        {
+          "label": "upload",
+          "name": "upload",
+          "type": "AUDIOUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "label": "AUDIO",
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            513
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.7.0",
+        "Node name for S&R": "LoadAudio",
+        "ue_properties": {
+          "version": "7.5.2",
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "此处正好放生 (2).wav",
+        null,
+        null
+      ]
+    },
+    {
+      "id": 247,
+      "type": "SetLatentNoiseMask",
+      "pos": [
+        2337.975621269812,
+        1638.075681558396
+      ],
+      "size": [
+        188.13729858398438,
+        46
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "Latent",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 370
+        },
+        {
+          "label": "遮罩",
+          "name": "mask",
+          "type": "MASK",
+          "link": 371
+        }
+      ],
+      "outputs": [
+        {
+          "label": "Latent",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            523
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.8.2",
+        "Node name for S&R": "SetLatentNoiseMask",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 230,
+      "type": "LoraLoaderModelOnly",
+      "pos": [
+        1486.855077039719,
+        2163.032430109806
+      ],
+      "size": [
+        321.1914643969726,
+        82
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 343
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            526
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.75",
+        "Node name for S&R": "LoraLoaderModelOnly",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.7",
+          "input_ue_unconnectable": {}
+        },
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "models": [
+          {
+            "name": "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/ltx-2.3/resolve/main/split_files/loras/ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
+            "directory": "loras"
+          }
+        ]
+      },
+      "widgets_values": [
+        "2026\\ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
+        0.6
+      ]
+    },
+    {
+      "id": 260,
+      "type": "PainterLTX2Vomni",
+      "pos": [
+        2404.1311834993326,
+        2540.8476197610585
+      ],
+      "size": [
+        287.333984375,
+        362
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 481
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 482
+        },
+        {
+          "name": "video_vae",
+          "type": "VAE",
+          "link": 483
+        },
+        {
+          "name": "audio_vae",
+          "type": "VAE",
+          "link": 484
+        },
+        {
+          "name": "start_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 519
+        },
+        {
+          "name": "end_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 520
+        },
+        {
+          "name": "source_video",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "reference_image1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "reference_image2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            489,
+            490
+          ]
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            491,
+            492
+          ]
+        },
+        {
+          "name": "video_latent",
+          "type": "LATENT",
+          "links": [
+            493
+          ]
+        },
+        {
+          "name": "audio_latent",
+          "type": "LATENT",
+          "links": [
+            524
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-painternodes",
+        "ver": "5a908a4dedb498e768d9af7f7ba3fef1dcc794ed",
+        "Node name for S&R": "PainterLTX2Vomni",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        1280,
+        704,
+        161,
+        24,
+        0.7,
+        0,
+        0
+      ]
+    },
+    {
+      "id": 269,
+      "type": "ComfySwitchNode",
+      "pos": [
+        2623.137655697763,
+        1713.5596873724
+      ],
+      "size": [
+        262.33098996086164,
+        78
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "on_false",
+          "type": "LATENT",
+          "link": 524
+        },
+        {
+          "name": "on_true",
+          "type": "LATENT",
+          "link": 523
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "links": [
+            525
+          ]
+        }
+      ],
+      "title": "是否自定义音频",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.24.0",
+        "Node name for S&R": "ComfySwitchNode",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.5.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        true
+      ]
+    },
+    {
+      "id": 232,
+      "type": "PathchSageAttentionKJ",
+      "pos": [
+        2468.5423994567177,
+        2360.3503384608653
+      ],
+      "size": [
+        210,
+        82
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "模型",
+          "name": "model",
+          "type": "MODEL",
+          "link": 504
+        },
+        {
+          "label": "SAGE注意力",
+          "name": "sage_attention",
+          "type": "COMBO",
+          "widget": {
+            "name": "sage_attention"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            505
+          ]
+        }
+      ],
+      "title": "SAGE注意力补丁KJ",
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "1.3.3",
+        "Node name for S&R": "PathchSageAttentionKJ",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "auto",
+        false
+      ]
+    },
+    {
+      "id": 224,
+      "type": "LTXVAudioVAELoader",
+      "pos": [
+        1485.9616289522967,
+        2299.43046902128
+      ],
+      "size": [
+        332.7042508987138,
+        58
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "Audio VAE",
+          "type": "VAE",
+          "links": [
+            322,
+            484,
+            512
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.10.0",
+        "Node name for S&R": "LTXVAudioVAELoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        },
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "models": [
+          {
+            "name": "ltx-2.3-22b-distilled-fp8.safetensors",
+            "url": "https://huggingface.co/Lightricks/LTX-2.3-fp8/resolve/main/ltx-2.3-22b-distilled-fp8.safetensors",
+            "directory": "checkpoints"
+          }
+        ]
+      },
+      "widgets_values": [
+        "ltx-2.3-22b-dev-fp8.safetensors"
+      ]
+    },
+    {
+      "id": 223,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        1494.972835646806,
+        1993.7303349978151
+      ],
+      "size": [
+        323.12446074717707,
+        98
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            343
+          ]
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": []
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            320,
+            483
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.10.0",
+        "Node name for S&R": "CheckpointLoaderSimple",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        },
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "models": [
+          {
+            "name": "ltx-2.3-22b-distilled-fp8.safetensors",
+            "url": "https://huggingface.co/Lightricks/LTX-2.3-fp8/resolve/main/ltx-2.3-22b-distilled-fp8.safetensors",
+            "directory": "checkpoints"
+          }
+        ]
+      },
+      "widgets_values": [
+        "ltx-2.3-22b-dev-fp8.safetensors"
+      ]
+    },
+    {
+      "id": 229,
+      "type": "LTX2_NAG",
+      "pos": [
+        2367.325141608708,
+        2022.8982894867065
+      ],
+      "size": [
+        210,
+        170
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 526
+        },
+        {
+          "name": "nag_cond_video",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 473
+        },
+        {
+          "name": "nag_cond_audio",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 471
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            504
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "52a1dbf88a563b70964a5cfd705c12f328598dcf",
+        "Node name for S&R": "LTX2_NAG",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.5.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        11,
+        0.25,
+        2.5,
+        false
+      ]
+    },
+    {
+      "id": 217,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1858.8949814745447,
+        2380.3590213495627
+      ],
+      "size": [
+        420.7530930945186,
+        114.70267223820338
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 315
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            471,
+            473,
+            482
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.56",
+        "Node name for S&R": "CLIPTextEncode",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.5.2",
+          "input_ue_unconnectable": {}
+        },
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": [
+        "background music,music,background music,BGM,soundtrack,music,instrumental music,melody,audio track,singing,music overlay"
+      ],
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 222,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1855.903268766626,
+        1997.2203064676146
+      ],
+      "size": [
+        443.20553658162225,
+        291.6440930672052
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 324
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            481
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.56",
+        "Node name for S&R": "CLIPTextEncode",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.5.2",
+          "input_ue_unconnectable": {}
+        },
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": [
+        "镜头慢慢拉近，哥哥正在对妹妹说【此处正好放生，把活物尽行放去】，妹妹微笑看着哥哥"
+      ],
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 265,
+      "type": "LoadImage",
+      "pos": [
+        1550.5055798641552,
+        2596.608022535207
+      ],
+      "size": [
+        339.8976904992187,
+        326
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            519
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.28.0",
+        "Node name for S&R": "LoadImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "013.png",
+        "image"
+      ]
+    },
+    {
+      "id": 266,
+      "type": "LoadImage",
+      "pos": [
+        1957.8872243901096,
+        2593.8350137906195
+      ],
+      "size": [
+        370.0259300387261,
+        326
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 4,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            520
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.28.0",
+        "Node name for S&R": "LoadImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "014.png",
+        "image"
+      ]
+    },
+    {
+      "id": 210,
+      "type": "LTXVConcatAVLatent",
+      "pos": [
+        2671.443756938749,
+        2026.4950968615215
+      ],
+      "size": [
+        181.308203125,
+        46
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_latent",
+          "type": "LATENT",
+          "link": 493
+        },
+        {
+          "name": "audio_latent",
+          "type": "LATENT",
+          "link": 525
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            335
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.7.0",
+        "Node name for S&R": "LTXVConcatAVLatent",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.5.2",
+          "input_ue_unconnectable": {}
+        },
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 221,
+      "type": "LTXVSeparateAVLatent",
+      "pos": [
+        2663.0659670518253,
+        2184.8126984572373
+      ],
+      "size": [
+        186.7154296875,
+        46
+      ],
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "av_latent",
+          "type": "LATENT",
+          "link": 336
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_latent",
+          "type": "LATENT",
+          "links": [
+            283
+          ]
+        },
+        {
+          "name": "audio_latent",
+          "type": "LATENT",
+          "links": [
+            321
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "LTXVSeparateAVLatent",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.5.2",
+          "input_ue_unconnectable": {}
+        },
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 220,
+      "type": "LTXVAudioVAEDecode",
+      "pos": [
+        2912.5286153729644,
+        1979.3260930032095
+      ],
+      "size": [
+        157.491796875,
+        46
+      ],
+      "flags": {},
+      "order": 23,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 321
+        },
+        {
+          "label": "Audio VAE",
+          "name": "audio_vae",
+          "type": "VAE",
+          "link": 322
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Audio",
+          "type": "AUDIO",
+          "links": [
+            353
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.7.0",
+        "Node name for S&R": "LTXVAudioVAEDecode",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.5.2",
+          "input_ue_unconnectable": {}
+        },
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 200,
+      "type": "LTXVCropGuides",
+      "pos": [
+        2900.9969977566893,
+        2137.4033790656695
+      ],
+      "size": [
+        213.70629286196072,
+        83.92762627785623
+      ],
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 489
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 491
+        },
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "link": 283
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": []
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": []
+        },
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            319
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.8.2",
+        "Node name for S&R": "LTXVCropGuides",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        },
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 219,
+      "type": "VAEDecodeTiled",
+      "pos": [
+        3165.845700559077,
+        2120.137716148365
+      ],
+      "size": [
+        210,
+        164.2076033659855
+      ],
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 319
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 320
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            352
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.7.0",
+        "Node name for S&R": "VAEDecodeTiled",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.5.2",
+          "input_ue_unconnectable": {}
+        },
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": [
+        1024,
+        64,
+        4096,
+        64
+      ]
+    },
+    {
+      "id": 227,
+      "type": "KSamplerAdvanced",
+      "pos": [
+        2776.5136821076603,
+        2380.6149285969777
+      ],
+      "size": [
+        270,
+        334
+      ],
+      "flags": {},
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 505
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 490
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 492
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 335
+        },
+        {
+          "name": "noise_seed",
+          "type": "INT",
+          "widget": {
+            "name": "noise_seed"
+          },
+          "link": 347
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            336
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.27.0",
+        "Node name for S&R": "KSamplerAdvanced",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "enable",
+        6693499507543,
+        "randomize",
+        8,
+        1,
+        "euler",
+        "linear_quadratic",
+        0,
+        1000,
+        "disable"
+      ]
+    },
+    {
+      "id": 231,
+      "type": "easy seed",
+      "pos": [
+        2761.1347432797925,
+        2793.664405113744
+      ],
+      "size": [
+        269.984375,
+        131.40625
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "随机种子",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "label": "随机种子",
+          "name": "seed",
+          "type": "INT",
+          "links": [
+            347
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "1.3.5",
+        "Node name for S&R": "easy seed",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        1080609212809166,
+        "fixed",
+        null
+      ],
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 235,
+      "type": "PainterVideoCombine",
+      "pos": [
+        3099.0562454108513,
+        2341.5659732951085
+      ],
+      "size": [
+        780.345854449718,
+        575
+      ],
+      "flags": {},
+      "order": 25,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 352
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 353
+        }
+      ],
+      "outputs": [
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "frame_rate",
+          "type": "FLOAT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-painternodes",
+        "ver": "df05379d4f84e6a2cea68ed99b089e4c51e749a8",
+        "Node name for S&R": "PainterVideoCombine",
+        "aux_id": "princepainter/ComfyUI-PainterNodes",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        },
+        "painter_output_cache": {
+          "filename": "Painter_Video_01748_.mp4",
+          "subfolder": "",
+          "type": "output"
+        }
+      },
+      "widgets_values": [
+        24,
+        "video/h264-mp4",
+        "Painter_Video",
+        true,
+        ""
+      ]
+    }
+  ],
+  "links": [
+    [
+      283,
+      221,
+      0,
+      200,
+      2,
+      "LATENT"
+    ],
+    [
+      315,
+      225,
+      0,
+      217,
+      0,
+      "CLIP"
+    ],
+    [
+      319,
+      200,
+      2,
+      219,
+      0,
+      "LATENT"
+    ],
+    [
+      320,
+      223,
+      2,
+      219,
+      1,
+      "VAE"
+    ],
+    [
+      321,
+      221,
+      1,
+      220,
+      0,
+      "LATENT"
+    ],
+    [
+      322,
+      224,
+      0,
+      220,
+      1,
+      "VAE"
+    ],
+    [
+      324,
+      225,
+      0,
+      222,
+      0,
+      "CLIP"
+    ],
+    [
+      335,
+      210,
+      0,
+      227,
+      3,
+      "LATENT"
+    ],
+    [
+      336,
+      227,
+      0,
+      221,
+      0,
+      "LATENT"
+    ],
+    [
+      343,
+      223,
+      0,
+      230,
+      0,
+      "MODEL"
+    ],
+    [
+      347,
+      231,
+      0,
+      227,
+      4,
+      "INT"
+    ],
+    [
+      352,
+      219,
+      0,
+      235,
+      0,
+      "IMAGE"
+    ],
+    [
+      353,
+      220,
+      0,
+      235,
+      1,
+      "AUDIO"
+    ],
+    [
+      368,
+      245,
+      0,
+      244,
+      0,
+      "AUDIO"
+    ],
+    [
+      370,
+      244,
+      0,
+      247,
+      0,
+      "LATENT"
+    ],
+    [
+      371,
+      243,
+      0,
+      247,
+      1,
+      "MASK"
+    ],
+    [
+      471,
+      217,
+      0,
+      229,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      473,
+      217,
+      0,
+      229,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      481,
+      222,
+      0,
+      260,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      482,
+      217,
+      0,
+      260,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      483,
+      223,
+      2,
+      260,
+      2,
+      "VAE"
+    ],
+    [
+      484,
+      224,
+      0,
+      260,
+      3,
+      "VAE"
+    ],
+    [
+      489,
+      260,
+      0,
+      200,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      490,
+      260,
+      0,
+      227,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      491,
+      260,
+      1,
+      200,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      492,
+      260,
+      1,
+      227,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      493,
+      260,
+      2,
+      210,
+      0,
+      "LATENT"
+    ],
+    [
+      504,
+      229,
+      0,
+      232,
+      0,
+      "MODEL"
+    ],
+    [
+      505,
+      232,
+      0,
+      227,
+      0,
+      "MODEL"
+    ],
+    [
+      512,
+      224,
+      0,
+      244,
+      1,
+      "VAE"
+    ],
+    [
+      513,
+      246,
+      0,
+      245,
+      0,
+      "AUDIO"
+    ],
+    [
+      519,
+      265,
+      0,
+      260,
+      4,
+      "IMAGE"
+    ],
+    [
+      520,
+      266,
+      0,
+      260,
+      5,
+      "IMAGE"
+    ],
+    [
+      523,
+      247,
+      0,
+      269,
+      1,
+      "LATENT"
+    ],
+    [
+      524,
+      260,
+      3,
+      269,
+      0,
+      "LATENT"
+    ],
+    [
+      525,
+      269,
+      0,
+      210,
+      1,
+      "LATENT"
+    ],
+    [
+      526,
+      230,
+      0,
+      229,
+      0,
+      "MODEL"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 2,
+      "title": "自定义音频",
+      "bounding": [
+        1445.0105874146327,
+        1509.8006416068329,
+        1103.3806687760632,
+        340.76465247335955
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "自定义音频",
+      "bounding": [
+        1452.689792583037,
+        1892.526816453843,
+        2462.7688386816126,
+        1060.227890486593
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "frontendVersion": "1.45.21",
+    "workflowRendererVersion": "Vue-corrected",
+    "ue_links": [],
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true,
+    "links_added_by_ue": [],
+    "ds": {
+      "scale": 0.6146556830199237,
+      "offset": [
+        -823.6114717878272,
+        -1220.7791102874733
+      ]
+    }
+  },
+  "version": 0.4
+}
