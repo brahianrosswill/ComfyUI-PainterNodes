@@ -113,9 +113,10 @@ class PainterVideoCombine:
         if audio_temp_path:
             if audio_duration < video_duration:
                 pad_duration = video_duration - audio_duration
-                args += ["-af", f"apad=pad_dur={pad_duration}"]
+                if pad_duration > 0.01:
+                    args += ["-af", f"apad=pad_dur={pad_duration:.3f}"]
             elif audio_duration > video_duration:
-                args += ["-af", f"atrim=duration={video_duration}"]
+                args += ["-af", f"atrim=duration={video_duration:.3f}"]
 
             args += ["-shortest"]
 
