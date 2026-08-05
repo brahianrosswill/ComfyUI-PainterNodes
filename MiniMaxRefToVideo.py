@@ -18,6 +18,7 @@ from comfy_api.latest import io
 
 
 CANVAS_MULTIPLE = 16
+REF_CANVAS_MULTIPLE = 32
 BASE_SHORT_EDGE = 768
 MAX_PIXELS = 768 * 1344
 REF_IMAGE_LONG_EDGE = 1920
@@ -50,8 +51,8 @@ def adapt_canvas(width, height):
     if nom_w * nom_h > MAX_PIXELS:
         s = math.sqrt(MAX_PIXELS / (nom_w * nom_h))
         nom_w, nom_h = nom_w * s, nom_h * s
-    return (max(CANVAS_MULTIPLE, round(nom_w / CANVAS_MULTIPLE) * CANVAS_MULTIPLE),
-            max(CANVAS_MULTIPLE, round(nom_h / CANVAS_MULTIPLE) * CANVAS_MULTIPLE))
+    return (max(REF_CANVAS_MULTIPLE, round(nom_w / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE),
+            max(REF_CANVAS_MULTIPLE, round(nom_h / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE))
 
 
 def _resize(image, width, height, crop):
@@ -88,7 +89,7 @@ class MiniMaxRefToVideo(io.ComfyNode):
                 io.Int.Input("height", default=768, min=32, max=nodes.MAX_RESOLUTION, step=16),
                 io.Int.Input("length", default=124, min=5, max=3600, step=17, tooltip="Frame count at 24 fps, (124 = ~5s, trained range is ~124-362)"),
                 io.Combo.Input("ref_image_size", options=["match", "max"], default="match",
-                    tooltip="Reference image sizing. 'match' scales each ref (down only, keeping aspect) to the generation's pixel area; 'max' uses the reference pipeline's 1920px long edge for best identity fidelity. Reference tokens ride through every sampling step, so 'max' can be several times slower."),
+                    tooltip="Reference image sizing. 'match' scales each ref (down only, keeping aspect) to the generation's pixel area then snaps to 32px; 'max' uses the reference pipeline's 1920px long edge for best identity fidelity. Reference tokens ride through every sampling step, so 'max' can be several times slower."),
                 io.Autogrow.Input("ref_images", optional=True,
                     template=io.Autogrow.TemplatePrefix(
                         input=io.Image.Input("ref_image", tooltip="Reference image (downscaled to 1920 long edge if larger, never upscaled)"),
@@ -141,8 +142,8 @@ class MiniMaxRefToVideo(io.ComfyNode):
                 scale = min(1.0, math.sqrt((width * height) / (w * h)))
             else:
                 scale = min(1.0, REF_IMAGE_LONG_EDGE / max(w, h))
-            tw = max(CANVAS_MULTIPLE, round(w * scale / CANVAS_MULTIPLE) * CANVAS_MULTIPLE)
-            th = max(CANVAS_MULTIPLE, round(h * scale / CANVAS_MULTIPLE) * CANVAS_MULTIPLE)
+            tw = max(REF_CANVAS_MULTIPLE, round(w * scale / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE)
+            th = max(REF_CANVAS_MULTIPLE, round(h * scale / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE)
             resized = _resize(img[:1], tw, th, "disabled")
             z = vae.encode(resized)
             ref_items.append({"type": "image", "data": resized})
@@ -156,8 +157,8 @@ class MiniMaxRefToVideo(io.ComfyNode):
             vh, vw = video_frames.shape[1], video_frames.shape[2]
             cw, ch = adapt_canvas(vw, vh)
             if vw * vh < cw * ch:
-                cw = max(CANVAS_MULTIPLE, round(vw / CANVAS_MULTIPLE) * CANVAS_MULTIPLE)
-                ch = max(CANVAS_MULTIPLE, round(vh / CANVAS_MULTIPLE) * CANVAS_MULTIPLE)
+                cw = max(REF_CANVAS_MULTIPLE, round(vw / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE)
+                ch = max(REF_CANVAS_MULTIPLE, round(vh / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE)
             frames = _resize(video_frames, cw, ch, "disabled")
             if frames.shape[0] > frame_count:
                 frames = frames[:frame_count]
