@@ -203,9 +203,23 @@ try:
 except Exception as e:
     print(f"[PainterNodes] Failed to import PainterTextOverlay: {e}")
 
+try:
+    from . import MiniMaxRefToVideo
+    _register_module(MiniMaxRefToVideo)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import MiniMaxRefToVideo: {e}")
+
+try:
+    from . import PainterMinimaxH3LatentUpscaler
+    _register_module(PainterMinimaxH3LatentUpscaler)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterMinimaxH3LatentUpscaler: {e}")
+    
+    
+
 print(f"\033[92m[PainterNodes] Loaded {len(NODE_CLASS_MAPPINGS)} nodes successfully!\033[0m")
 
-__version__ = "1.2.5"
+__version__ = "1.2.1"
 WEB_DIRECTORY = "./web/js"
 
 __all__ = [
