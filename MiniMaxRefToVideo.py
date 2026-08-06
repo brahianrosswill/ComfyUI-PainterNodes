@@ -19,9 +19,6 @@ from comfy_api.latest import io
 
 CANVAS_MULTIPLE = 16
 REF_CANVAS_MULTIPLE = 32
-BASE_SHORT_EDGE = 768
-MAX_PIXELS = 768 * 1344
-REF_IMAGE_LONG_EDGE = 1920
 FPS = 24
 AUDIO_LATENT_FPS = 40
 
@@ -40,19 +37,6 @@ def temporal_shape(length):
     frame_count = align_frame_count(max(5, length))
     duration = frame_count / FPS
     return frame_count, video_latent_t(frame_count), round(duration * AUDIO_LATENT_FPS)
-
-
-def adapt_canvas(width, height):
-    ratio = width / height
-    if ratio >= 1.0:
-        nom_w, nom_h = BASE_SHORT_EDGE * ratio, BASE_SHORT_EDGE
-    else:
-        nom_w, nom_h = BASE_SHORT_EDGE, BASE_SHORT_EDGE / ratio
-    if nom_w * nom_h > MAX_PIXELS:
-        s = math.sqrt(MAX_PIXELS / (nom_w * nom_h))
-        nom_w, nom_h = nom_w * s, nom_h * s
-    return (max(REF_CANVAS_MULTIPLE, round(nom_w / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE),
-            max(REF_CANVAS_MULTIPLE, round(nom_h / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE))
 
 
 def _resize(image, width, height, crop):
@@ -88,11 +72,11 @@ class MiniMaxRefToVideo(io.ComfyNode):
                 io.Int.Input("width", default=1344, min=32, max=nodes.MAX_RESOLUTION, step=16),
                 io.Int.Input("height", default=768, min=32, max=nodes.MAX_RESOLUTION, step=16),
                 io.Int.Input("length", default=124, min=5, max=3600, step=17, tooltip="Frame count at 24 fps, (124 = ~5s, trained range is ~124-362)"),
-                io.Combo.Input("ref_image_size", options=["match", "max"], default="match",
-                    tooltip="Reference image sizing. 'match' scales each ref (down only, keeping aspect) to the generation's pixel area then snaps to 32px; 'max' uses the reference pipeline's 1920px long edge for best identity fidelity. Reference tokens ride through every sampling step, so 'max' can be several times slower."),
+                io.Int.Input("ref_max_size", default=1920, min=32, max=4096, step=32,
+                    tooltip="Reference max long edge. Reference images and videos are scaled down (never up) so the longest side fits this value, then snapped to 32px."),
                 io.Autogrow.Input("ref_images", optional=True,
                     template=io.Autogrow.TemplatePrefix(
-                        input=io.Image.Input("ref_image", tooltip="Reference image (downscaled to 1920 long edge if larger, never upscaled)"),
+                        input=io.Image.Input("ref_image", tooltip="Reference image (downscaled to ref_max_size long edge if larger, never upscaled)"),
                         prefix="ref_image_", min=0, max=9)),
                 io.Autogrow.Input("ref_videos", optional=True,
                     template=io.Autogrow.TemplatePrefix(
@@ -127,7 +111,7 @@ class MiniMaxRefToVideo(io.ComfyNode):
         return z, z.shape[-1]
 
     @classmethod
-    def execute(cls, clip, vae, audio_vae, prompt, width, height, length, ref_image_size="match",
+    def execute(cls, clip, vae, audio_vae, prompt, width, height, length, ref_max_size=1920,
                 ref_images=None, ref_videos=None, ref_video_audios=None, ref_audios=None) -> io.NodeOutput:
         latent, frame_count = _empty_av_latent(width, height, length)
 
@@ -138,10 +122,7 @@ class MiniMaxRefToVideo(io.ComfyNode):
             if img is None:
                 continue
             h, w = img.shape[1], img.shape[2]
-            if ref_image_size == "match":
-                scale = min(1.0, math.sqrt((width * height) / (w * h)))
-            else:
-                scale = min(1.0, REF_IMAGE_LONG_EDGE / max(w, h))
+            scale = min(1.0, ref_max_size / max(w, h))
             tw = max(REF_CANVAS_MULTIPLE, round(w * scale / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE)
             th = max(REF_CANVAS_MULTIPLE, round(h * scale / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE)
             resized = _resize(img[:1], tw, th, "disabled")
@@ -155,10 +136,9 @@ class MiniMaxRefToVideo(io.ComfyNode):
                 continue
             soundtrack = ref_video_audios.get("ref_video_audio_" + name.rsplit("_", 1)[-1])
             vh, vw = video_frames.shape[1], video_frames.shape[2]
-            cw, ch = adapt_canvas(vw, vh)
-            if vw * vh < cw * ch:
-                cw = max(REF_CANVAS_MULTIPLE, round(vw / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE)
-                ch = max(REF_CANVAS_MULTIPLE, round(vh / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE)
+            scale = min(1.0, ref_max_size / max(vw, vh))
+            cw = max(REF_CANVAS_MULTIPLE, round(vw * scale / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE)
+            ch = max(REF_CANVAS_MULTIPLE, round(vh * scale / REF_CANVAS_MULTIPLE) * REF_CANVAS_MULTIPLE)
             frames = _resize(video_frames, cw, ch, "disabled")
             if frames.shape[0] > frame_count:
                 frames = frames[:frame_count]
