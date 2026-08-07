@@ -214,7 +214,18 @@ try:
     _register_module(PainterMinimaxH3LatentUpscaler)
 except Exception as e:
     print(f"[PainterNodes] Failed to import PainterMinimaxH3LatentUpscaler: {e}")
-    
+
+try:
+    from . import MiniMaxH3Turbo
+    _register_module(MiniMaxH3Turbo)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import MiniMaxH3Turbo: {e}")
+
+try:
+    from . import PainterPromptRewriter
+    _register_module(PainterPromptRewriter)
+except Exception as e:
+    print(f"[PainterNodes] Failed to import PainterPromptRewriter: {e}") 
     
 
 print(f"\033[92m[PainterNodes] Loaded {len(NODE_CLASS_MAPPINGS)} nodes successfully!\033[0m")
