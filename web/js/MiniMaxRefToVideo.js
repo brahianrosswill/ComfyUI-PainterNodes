@@ -75,12 +75,10 @@ function padLeft(v, size) {
     return String(v).padStart(size, "0");
 }
 function formatShotTime(totalSeconds) {
-    let ms = Math.max(0, Math.round(Number(totalSeconds) * 1000));
-    const minutes = Math.floor(ms / 60000);
-    ms -= minutes * 60000;
-    const seconds = Math.floor(ms / 1000);
-    ms -= seconds * 1000;
-    return `${padLeft(minutes, 2)}:${padLeft(seconds, 2)}.${padLeft(ms, 3)}`;
+    const s = Number(totalSeconds);
+    // 自动去除末尾多余 .0，1.0 → 1秒、1.5 →1.5秒
+    const display = Number.isInteger(s) ? s : s;
+    return `${display}秒切镜`;
 }
 function wrapDialogueTag(text) {
     const trimmed = String(text || "").trim();
