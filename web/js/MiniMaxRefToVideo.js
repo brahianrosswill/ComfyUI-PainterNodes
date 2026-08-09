@@ -1,6 +1,6 @@
 import { app } from "../../scripts/app.js";
 /* ================================================================
-MiniMaxRefToVideo.js  (修复版 - @可视化菜单 + 调试日志)
+MiniMaxRefToVideo.js  (界面稳定版 - 新增引用块缩略图 + @菜单)
 ================================================================ */
 const NODE_CLASS = "MiniMaxRefToVideo";
 const PROMPT_DOC_PROP = "mmr_prompt_doc";
@@ -50,11 +50,9 @@ const MENTION_ICON_MAP = {
     video: "🎞️",
     audio: "🔊",
 };
-
 // @提及菜单相关
 const MENTION_MENU_CLASS = "mmr-mention-menu";
 const MENTION_MENU_ITEM_CLASS = "mmr-mention-menu-item";
-
 let installed = false;
 let patchedPrompt = false;
 let activeMentionMenu = null;
@@ -70,15 +68,12 @@ function isTarget(node) {
         ""
     ) === NODE_CLASS;
 }
-
 function getWidget(node, name) {
     return node?.widgets?.find((w) => w?.name === name) || null;
 }
-
 function padLeft(v, size) {
     return String(v).padStart(size, "0");
 }
-
 function formatShotTime(totalSeconds) {
     let ms = Math.max(0, Math.round(Number(totalSeconds) * 1000));
     const minutes = Math.floor(ms / 60000);
@@ -87,7 +82,6 @@ function formatShotTime(totalSeconds) {
     ms -= seconds * 1000;
     return `${padLeft(minutes, 2)}:${padLeft(seconds, 2)}.${padLeft(ms, 3)}`;
 }
-
 function wrapDialogueTag(text) {
     const trimmed = String(text || "").trim();
     if (!trimmed) return "";
@@ -95,7 +89,6 @@ function wrapDialogueTag(text) {
     if (/^\[[^\]]+\]/.test(withPunct)) return `<d>${withPunct}</d>`;
     return `<d>[Chinese] ${withPunct}</d>`;
 }
-
 function postProcessPromptText(text) {
     let result = String(text || "");
     result = result.replace(BRACKET_DIALOGUE_RE, (m, inner) => wrapDialogueTag(inner));
@@ -113,20 +106,16 @@ function postProcessPromptText(text) {
     }
     return result;
 }
-
-// ===== 修复：获取源节点（兼容多种 ComfyUI 版本） =====
+// 获取源节点（兼容多种 ComfyUI 版本）
 function getSourceNode(targetNode, inputIndex) {
     const input = targetNode.inputs?.[inputIndex];
     if (!input) return null;
     
-    // 方式1：直接读 input.link
     const linkId = input.link;
     if (linkId == null) return null;
     
     const graph = targetNode.graph || app.graph;
     if (!graph) return null;
-
-    // 方式2：graph.links 是 Map
     if (graph.links instanceof Map) {
         const link = graph.links.get(linkId) || graph.links.get(String(linkId));
         if (link) {
@@ -134,8 +123,6 @@ function getSourceNode(targetNode, inputIndex) {
             return graph.getNodeById?.(originId) || null;
         }
     }
-
-    // 方式3：graph.links 是对象
     if (typeof graph.links === "object") {
         const link = graph.links[linkId] ?? graph.links[String(linkId)];
         if (link) {
@@ -143,8 +130,6 @@ function getSourceNode(targetNode, inputIndex) {
             return graph.getNodeById?.(originId) || null;
         }
     }
-
-    // 方式4：_links
     if (graph._links) {
         const link = graph._links[linkId] ?? graph._links[String(linkId)];
         if (link) {
@@ -152,10 +137,8 @@ function getSourceNode(targetNode, inputIndex) {
             return graph.getNodeById?.(originId) || null;
         }
     }
-
     return null;
 }
-
 function getMediaPreview(sourceNode, type) {
     if (!sourceNode || type === "audio") return "";
     if (sourceNode.imgs?.[0]?.src) return sourceNode.imgs[0].src;
@@ -164,19 +147,14 @@ function getMediaPreview(sourceNode, type) {
     if (filename) return `/view?filename=${encodeURIComponent(filename)}&type=input`;
     return "";
 }
-
-// ===== 修复：扫描已连接素材（兼容多种端口命名） =====
+// 扫描已连接素材（兼容多种端口命名）
 function getConnectedMedia(node) {
     const media = { image: [], video: [], audio: [] };
     if (!node?.inputs) return media;
-
     console.log("[MMR] 节点所有输入端口：", node.inputs.map(i => ({ name: i.name, link: i.link })));
-
     node.inputs.forEach((input, index) => {
-        if (input.link == null) return; // 未连接跳过
+        if (input.link == null) return;
         const name = String(input.name || "");
-
-        // 匹配参考图：ref_image_N / ref_images / image_N
         let match = name.match(/ref_image_(\d+)$/i) || name.match(/^image_(\d+)$/i);
         if (match) {
             const ordinal = parseInt(match[1], 10) + 1;
@@ -190,8 +168,6 @@ function getConnectedMedia(node) {
             });
             return;
         }
-
-        // 匹配参考视频
         match = name.match(/ref_video_(\d+)$/i) || name.match(/^video_(\d+)$/i);
         if (match) {
             const ordinal = parseInt(match[1], 10) + 1;
@@ -205,8 +181,6 @@ function getConnectedMedia(node) {
             });
             return;
         }
-
-        // 匹配参考音频
         match = name.match(/ref_audio_(\d+)$/i) || name.match(/ref_video_audio_(\d+)$/i) || name.match(/^audio_(\d+)$/i);
         if (match) {
             const ordinal = parseInt(match[1], 10) + 1;
@@ -221,11 +195,9 @@ function getConnectedMedia(node) {
             });
         }
     });
-
     ["image", "video", "audio"].forEach(type => {
         media[type].sort((a, b) => a.ordinal - b.ordinal);
     });
-
     console.log("[MMR] 识别到的已连接素材：", media);
     return media;
 }
@@ -236,26 +208,21 @@ DOM 辅助
 function makeCaretSentinel() {
     return document.createTextNode(CARET_SENTINEL);
 }
-
 function isCaretSentinelText(node) {
     return node?.nodeType === Node.TEXT_NODE && String(node.textContent || "").includes(CARET_SENTINEL);
 }
-
 function isOnlyCaretSentinelText(node) {
     return node?.nodeType === Node.TEXT_NODE && stripCaretSentinels(node.textContent) === "";
 }
-
 function stripCaretSentinels(value) {
     return String(value ?? "").replaceAll(CARET_SENTINEL, "");
 }
-
 function appendTextWithBreaks(container, value) {
     String(value || "").split("\n").forEach((part, i) => {
         if (i) container.append(document.createElement("br"));
         if (part) container.append(document.createTextNode(part));
     });
 }
-
 function setCaretAtNode(node, offset = 0) {
     const sel = window.getSelection?.();
     if (!sel || !node) return;
@@ -265,7 +232,6 @@ function setCaretAtNode(node, offset = 0) {
     sel.removeAllRanges();
     sel.addRange(range);
 }
-
 function setCaretAtEndOfNode(node) {
     if (!node) return;
     const sel = window.getSelection?.();
@@ -284,7 +250,6 @@ function setCaretAtEndOfNode(node) {
     sel.removeAllRanges();
     sel.addRange(range);
 }
-
 function editorText(editor) {
     let result = "";
     const visit = (node) => {
@@ -312,7 +277,6 @@ function editorText(editor) {
     for (const child of editor.childNodes || []) visit(child);
     return result;
 }
-
 function insertPlainText(editor, text) {
     if (document.execCommand?.("insertText", false, text)) return;
     const sel = window.getSelection?.();
@@ -326,7 +290,6 @@ function insertPlainText(editor, text) {
     sel.removeAllRanges();
     sel.addRange(range);
 }
-
 function insertEditorLineBreak(editor) {
     const sel = window.getSelection?.();
     if (!sel || !sel.rangeCount) return false;
@@ -352,7 +315,6 @@ function insertEditorLineBreak(editor) {
 function isDialogueBlock(node) {
     return node?.nodeType === Node.ELEMENT_NODE && node.classList?.contains(DIALOGUE_CLASS);
 }
-
 function makeDialogueBlock(value = "") {
     const block = document.createElement("span");
     block.className = DIALOGUE_CLASS;
@@ -362,11 +324,9 @@ function makeDialogueBlock(value = "") {
     if (!String(value || "")) block.append(makeCaretSentinel());
     return block;
 }
-
 function dialogueBlockText(block) {
     return editorText(block);
 }
-
 function dialogueBlockAtSelection(editor) {
     const sel = window.getSelection?.();
     if (!sel || !sel.rangeCount) return null;
@@ -375,7 +335,6 @@ function dialogueBlockAtSelection(editor) {
     const block = element?.closest?.(`.${DIALOGUE_CLASS}`);
     return block && editor.contains(block) ? block : null;
 }
-
 function dialogueBoundary(block, side) {
     if (!block?.parentNode) return null;
     const sibling = side === "before" ? block.previousSibling : block.nextSibling;
@@ -384,7 +343,6 @@ function dialogueBoundary(block, side) {
     block.parentNode.insertBefore(marker, side === "before" ? block : block.nextSibling);
     return marker;
 }
-
 function exitDialogueBlock(node, editor, block) {
     const marker = dialogueBoundary(block, "after");
     if (!marker) return false;
@@ -394,7 +352,6 @@ function exitDialogueBlock(node, editor, block) {
     setCaretAtNode(marker, idx >= 0 ? idx + CARET_SENTINEL.length : text.length);
     return true;
 }
-
 function insertDialogueBlockAtSelection(node, editor) {
     const sel = window.getSelection?.();
     if (!sel || !sel.rangeCount || !editor) return false;
@@ -412,7 +369,6 @@ function insertDialogueBlockAtSelection(node, editor) {
     setCaretAtEndOfNode(block);
     return true;
 }
-
 function removeDialogueBlock(block) {
     if (!block?.parentNode) return false;
     const parent = block.parentNode;
@@ -428,7 +384,6 @@ function removeDialogueBlock(block) {
     setCaretAtNode(marker, marker.textContent.length);
     return true;
 }
-
 function convertBracketsAtCaret(node, editor) {
     const sel = window.getSelection?.();
     if (!sel || !sel.rangeCount || !sel.isCollapsed) return false;
@@ -456,7 +411,6 @@ function convertBracketsAtCaret(node, editor) {
     pushPromptHistory(node);
     return true;
 }
-
 function convertLooseBrackets(node, editor) {
     const sel = window.getSelection?.();
     if (!sel || !sel.rangeCount || !sel.isCollapsed) return;
@@ -506,7 +460,6 @@ function makeShotChip(secondsValue) {
     });
     return chip;
 }
-
 function getShotTriggerRange(editor) {
     const sel = window.getSelection?.();
     if (!sel || !sel.rangeCount || !sel.isCollapsed) return null;
@@ -522,7 +475,6 @@ function getShotTriggerRange(editor) {
     range.setEnd(container, caret.startOffset);
     return { range, seconds: Number(match[1]) };
 }
-
 function validateShotChips(editor) {
     const chips = editor?.querySelectorAll?.(`.${SHOT_CHIP_CLASS}`) || [];
     let previous = -Infinity;
@@ -534,7 +486,7 @@ function validateShotChips(editor) {
 }
 
 /* ================================================================
-引用块
+引用块（正方形缩略图版）
 ================================================================ */
 function isMentionChip(node) {
     return (
@@ -542,7 +494,6 @@ function isMentionChip(node) {
         (node.classList?.contains(MENTION_CHIP_CLASS) || node.classList?.contains(SHOT_CHIP_CLASS))
     );
 }
-
 function makeMentionChip(option) {
     const chip = document.createElement("span");
     chip.className = MENTION_CHIP_CLASS;
@@ -552,13 +503,31 @@ function makeMentionChip(option) {
     chip.dataset.ordinal = String(option.ordinal || "");
     chip.dataset.mediaType = option.type || "image";
     chip.title = option.tag || "";
+
     const icon = document.createElement("span");
-    icon.className = "mmr-chip-icon";
-    icon.textContent = MENTION_ICON_MAP[option.type] || "🖼";
+    icon.className = "mmr-chip-icon mmr-chip-thumb";
+
+    // 有预览图就显示正方形缩略图，加载失败自动回退 emoji
+    const previewUrl = option.previewUrl || getMediaPreview(option.sourceNode, option.type);
+    if (previewUrl && option.type !== "audio") {
+        const img = document.createElement("img");
+        img.src = previewUrl;
+        img.alt = "";
+        img.draggable = false;
+        img.addEventListener("error", () => {
+            img.remove();
+            icon.textContent = MENTION_ICON_MAP[option.type] || "🖼";
+        });
+        icon.append(img);
+    } else {
+        icon.textContent = MENTION_ICON_MAP[option.type] || "🖼";
+    }
+
     const label = document.createElement("span");
     label.className = "mmr-mention-chip-label";
     label.textContent = `@${option.label || ""}`;
     chip.append(icon, label);
+
     chip.addEventListener("pointerdown", (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -575,7 +544,6 @@ function makeMentionChip(option) {
     });
     return chip;
 }
-
 function convertMentionAtCaret(node, editor) {
     const sel = window.getSelection?.();
     if (!sel || !sel.rangeCount || !sel.isCollapsed) return false;
@@ -591,12 +559,25 @@ function convertMentionAtCaret(node, editor) {
     const tag = `<${MENTION_TAG_MAP[type]} ${ordinal}>`;
     const token = `@${match[1]}${match[2]}`;
     const startOffset = caret.startOffset - match[0].length;
+
+    // 匹配已连接素材，拿缩略图
+    const media = getConnectedMedia(node);
+    const matched = media[type]?.find(item => item.ordinal === ordinal);
+
     container.deleteData(startOffset, match[0].length);
     const range = document.createRange();
     range.setStart(container, startOffset);
     range.collapse(true);
     const before = makeCaretSentinel();
-    const chip = makeMentionChip({ type, ordinal, tag, token, label: `${match[1]}${match[2]}` });
+    const chip = makeMentionChip({
+        type,
+        ordinal,
+        tag,
+        token,
+        label: `${match[1]}${match[2]}`,
+        sourceNode: matched?.sourceNode,
+        previewUrl: matched?.previewUrl,
+    });
     const after = makeCaretSentinel();
     const frag = document.createDocumentFragment();
     frag.append(before, chip, after);
@@ -608,43 +589,34 @@ function convertMentionAtCaret(node, editor) {
 }
 
 /* ================================================================
-@ 提及选择菜单（修复版）
+@ 提及选择菜单
 ================================================================ */
 function getMentionRange(editor) {
     const sel = window.getSelection?.();
     if (!sel || !sel.rangeCount || !sel.isCollapsed) return null;
     const caret = sel.getRangeAt(0);
     if (!editor.contains(caret.startContainer)) return null;
-    
-    // 在台词块内不触发
     if (caret.startContainer.parentElement?.closest?.(`.${DIALOGUE_CLASS}`)) return null;
     if (caret.startContainer.parentElement?.closest?.(`.${MENTION_CHIP_CLASS}`)) return null;
-
     const container = caret.startContainer;
     if (container.nodeType !== Node.TEXT_NODE) return null;
-    
     const before = container.textContent.slice(0, caret.startOffset);
-    // 修复：更宽松的匹配，只要光标前有 @ 就触发
     const match = before.match(/@([^@\n]*)$/);
     if (!match) return null;
-
     const range = document.createRange();
     range.setStart(container, caret.startOffset - match[0].length);
     range.setEnd(container, caret.startOffset);
     return { range, query: match[1].toLowerCase() };
 }
-
 function closeMentionMenu() {
     activeMentionMenu?.element?.remove();
     activeMentionMenu = null;
 }
-
 function updateMenuActiveState(menu) {
     const items = menu.element.querySelectorAll(`.${MENTION_MENU_ITEM_CLASS}`);
     items.forEach((el, i) => el.classList.toggle("is-active", i === menu.activeIndex));
     items[menu.activeIndex]?.scrollIntoView?.({ block: "nearest" });
 }
-
 function renderMentionMenu(menu, options) {
     const { element } = menu;
     element.textContent = "";
@@ -655,17 +627,17 @@ function renderMentionMenu(menu, options) {
         element.append(empty);
         return;
     }
-
     options.forEach((item, index) => {
         const el = document.createElement("div");
         el.className = `${MENTION_MENU_ITEM_CLASS} ${index === menu.activeIndex ? "is-active" : ""}`;
         
         const icon = document.createElement("span");
-        icon.className = "mmr-mention-menu-icon";
+        icon.className = "mmr-mention-menu-icon mmr-menu-thumb";
         const preview = getMediaPreview(item.sourceNode, item.type);
-        if (preview) {
+        if (preview && item.type !== "audio") {
             const img = document.createElement("img");
             img.src = preview;
+            img.alt = "";
             icon.append(img);
         } else {
             icon.textContent = MENTION_ICON_MAP[item.type] || "🖼";
@@ -674,7 +646,6 @@ function renderMentionMenu(menu, options) {
         const text = document.createElement("span");
         text.className = "mmr-mention-menu-text";
         text.textContent = item.label;
-
         el.append(icon, text);
         el.addEventListener("pointerdown", (e) => {
             e.preventDefault();
@@ -688,13 +659,11 @@ function renderMentionMenu(menu, options) {
         element.append(el);
     });
 }
-
 function positionMentionMenu(element, editor) {
     const sel = window.getSelection?.();
     const caretRect = sel?.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : null;
     const editorRect = editor.getBoundingClientRect();
     const rect = caretRect && (caretRect.width || caretRect.height) ? caretRect : editorRect;
-
     element.style.visibility = "hidden";
     element.style.display = "block";
     
@@ -711,7 +680,6 @@ function positionMentionMenu(element, editor) {
     element.style.top = `${Math.max(8, top)}px`;
     element.style.visibility = "visible";
 }
-
 function openOrUpdateMentionMenu(node, editor) {
     const mention = getMentionRange(editor);
     console.log("[MMR] @触发检测：", mention);
@@ -720,20 +688,16 @@ function openOrUpdateMentionMenu(node, editor) {
         closeMentionMenu();
         return false;
     }
-
     const media = getConnectedMedia(node);
     const allOptions = [...media.image, ...media.video, ...media.audio];
     const filtered = allOptions.filter(opt => 
         !mention.query || opt.label.toLowerCase().includes(mention.query)
     );
-
     console.log("[MMR] 过滤后素材数：", filtered.length);
-
     if (!filtered.length) {
         closeMentionMenu();
         return false;
     }
-
     if (!activeMentionMenu) {
         const element = document.createElement("div");
         element.className = MENTION_MENU_CLASS;
@@ -741,51 +705,37 @@ function openOrUpdateMentionMenu(node, editor) {
         activeMentionMenu = { element, node, editor, activeIndex: 0, options: filtered };
         console.log("[MMR] 创建菜单");
     }
-
     activeMentionMenu.options = filtered;
     activeMentionMenu.activeIndex = Math.min(activeMentionMenu.activeIndex, filtered.length - 1);
     renderMentionMenu(activeMentionMenu, filtered);
     
-    // 延迟定位，确保 DOM 渲染完成
     requestAnimationFrame(() => {
         if (activeMentionMenu) positionMentionMenu(activeMentionMenu.element, editor);
     });
     
     return true;
 }
-
 function insertMentionFromMenu(option) {
     if (!activeMentionMenu) return;
     const { node, editor } = activeMentionMenu;
     const mention = getMentionRange(editor);
     if (!mention) return;
-
     mention.range.deleteContents();
     const before = makeCaretSentinel();
-    const chip = makeMentionChip({
-        type: option.type,
-        ordinal: option.ordinal,
-        tag: option.tag,
-        token: option.token,
-        label: option.label,
-    });
+    const chip = makeMentionChip(option);
     const after = makeCaretSentinel();
-
     const frag = document.createDocumentFragment();
     frag.append(before, chip, after);
     mention.range.insertNode(frag);
-
     setCaretAtNode(after, after.textContent.length);
     closeMentionMenu();
     syncPromptFromEditor(node);
     pushPromptHistory(node);
     editor.focus();
 }
-
 function handleMentionMenuKeydown(node, editor, event) {
     if (!activeMentionMenu || activeMentionMenu.node !== node) return false;
     const menu = activeMentionMenu;
-
     if (event.key === "Escape") {
         closeMentionMenu();
         return true;
@@ -861,31 +811,30 @@ function serializeEditorDoc(editor) {
         version: 1,
         text: parts.map((p) => {
             if (p.type === "mention") return p.token;
-            if (p.type === "dialogue") return `<d>${p.text || ""}</d>`;
+            if (p.type === "dialogue") return `<d>${p.text}</d>`;
             if (p.type === "shot") return `切镜${p.seconds}`;
             return p.text;
         }).join(""),
         parts,
     };
 }
-
 function appendDialogueBlock(container, value = "") {
     container.append(makeCaretSentinel(), makeDialogueBlock(value), makeCaretSentinel());
 }
-
 function appendPromptTextWithDialogueBlocks(container, value) {
     const source = String(value || "");
     const pattern = /<d>([\s\S]*?)<\/d>/gi;
     let cursor = 0;
     let match;
     while ((match = pattern.exec(source))) {
-        appendTextWithBreaks(container, source.slice(cursor, match.index));
+        if (match.index > cursor) {
+            appendTextWithBreaks(container, source.slice(cursor, match.index));
+        }
         appendDialogueBlock(container, match[1]);
         cursor = match.index + match[0].length;
     }
     appendTextWithBreaks(container, source.slice(cursor));
 }
-
 function renderEditorFromNode(node, force = false) {
     const editor = node?.__mmrEditor;
     const widget = getWidget(node, "prompt");
@@ -919,7 +868,6 @@ function renderEditorFromNode(node, force = false) {
     }
     validateShotChips(editor);
 }
-
 function syncPromptFromEditor(node, markDirty = true) {
     const editor = node?.__mmrEditor;
     const widget = getWidget(node, "prompt");
@@ -978,11 +926,9 @@ function clonePromptDoc(doc) {
         parts: Array.isArray(source.parts) ? source.parts.map((p) => ({ ...p })) : [],
     };
 }
-
 function promptDocKey(doc) {
     return JSON.stringify(clonePromptDoc(doc));
 }
-
 function ensurePromptHistory(node) {
     const editor = node?.__mmrEditor;
     if (!editor) return null;
@@ -996,12 +942,10 @@ function ensurePromptHistory(node) {
     };
     return node.__mmrPromptHistory;
 }
-
 function resetPromptHistory(node) {
     node.__mmrPromptHistory = null;
     ensurePromptHistory(node);
 }
-
 function pushPromptHistory(node) {
     const history = ensurePromptHistory(node);
     const editor = node?.__mmrEditor;
@@ -1014,14 +958,12 @@ function pushPromptHistory(node) {
     history.redo = [];
     history.lastKey = key;
 }
-
 function isPromptUndoRedoEvent(event) {
     if (!(event?.ctrlKey || event?.metaKey)) return false;
     const key = String(event.key || "").toLowerCase();
     const code = String(event.code || "");
     return key === "z" || key === "y" || code === "KeyZ" || code === "KeyY";
 }
-
 function setEditorCaretAtEnd(editor) {
     if (!editor) return;
     const sel = window.getSelection?.();
@@ -1032,7 +974,6 @@ function setEditorCaretAtEnd(editor) {
     sel.removeAllRanges();
     sel.addRange(range);
 }
-
 function applyPromptHistoryEntry(node, entry) {
     const history = node?.__mmrPromptHistory;
     const editor = node?.__mmrEditor;
@@ -1056,7 +997,6 @@ function applyPromptHistoryEntry(node, entry) {
     setEditorCaretAtEnd(editor);
     return true;
 }
-
 function handlePromptHistoryKeydown(node, event) {
     if (!isPromptUndoRedoEvent(event)) return false;
     event.preventDefault?.();
@@ -1089,7 +1029,6 @@ function appendPastedText(fragment, text) {
         if (part) fragment.append(document.createTextNode(part));
     });
 }
-
 function insertTextWithMentionChips(node, editor, text) {
     const sel = window.getSelection?.();
     if (!sel || !sel.rangeCount || !editor.contains(sel.anchorNode)) return false;
@@ -1148,7 +1087,6 @@ function removeChip(chip, direction = "backward") {
     chip.remove();
     return marker;
 }
-
 function deleteChipNearCaret(editor, node, direction) {
     const sel = window.getSelection?.();
     if (!sel || !sel.rangeCount || !sel.isCollapsed) return false;
@@ -1166,7 +1104,6 @@ function deleteChipNearCaret(editor, node, direction) {
     }
     return false;
 }
-
 function backspaceDialogueBoundary(editor, node) {
     const sel = window.getSelection?.();
     if (!sel || !sel.rangeCount || !sel.isCollapsed) return false;
@@ -1195,7 +1132,6 @@ function cloneWidgetValue(value) {
         return undefined;
     }
 }
-
 function captureWidgetState(node) {
     if (!node) return;
     node.properties ||= {};
@@ -1209,7 +1145,6 @@ function captureWidgetState(node) {
     }
     node.properties[WIDGET_STATE_PROP] = values;
 }
-
 function restoreWidgetState(node, stateArg = null) {
     const state = stateArg || node?.properties?.[WIDGET_STATE_PROP];
     if (!node || !state || typeof state !== "object") return false;
@@ -1229,7 +1164,6 @@ function restoreWidgetState(node, stateArg = null) {
     node.setDirtyCanvas?.(true, true);
     return true;
 }
-
 function writeNodeSize(node, size) {
     if (!node) return;
     const source = Array.isArray(size) || size?.length != null ? size : node.size;
@@ -1238,12 +1172,10 @@ function writeNodeSize(node, size) {
     node.properties ||= {};
     node.properties[NODE_SIZE_PROP] = [w, h];
 }
-
 function storeNodeSize(node, size) {
     if (!node || node.__mmrRestoringSize) return;
     writeNodeSize(node, size);
 }
-
 function applyNodeSizeNow(node, size) {
     if (!node || !Array.isArray(size) && size?.length == null) return;
     node.__mmrRestoringSize = true;
@@ -1255,7 +1187,6 @@ function applyNodeSizeNow(node, size) {
         setTimeout(() => { node.__mmrRestoringSize = false; }, 0);
     }
 }
-
 function instrumentWidgets(node) {
     if (!node?.widgets) return;
     for (const w of node.widgets) {
@@ -1277,7 +1208,6 @@ function instrumentWidgets(node) {
         };
     }
 }
-
 function applyNodeDataDefaults(nodeData) {
     try {
         const required = nodeData?.input?.required;
@@ -1300,7 +1230,7 @@ function applyNodeDataDefaults(nodeData) {
 }
 
 /* ================================================================
-编辑器创建
+编辑器创建（完全保留原逻辑，不改动布局）
 ================================================================ */
 function hideOriginalPromptWidget(widget) {
     if (!widget) return;
@@ -1313,7 +1243,6 @@ function hideOriginalPromptWidget(widget) {
     widget.type = "hidden";
     widget.computeSize = () => [0, -4];
 }
-
 function ensurePromptEditor(node) {
     if (node.__mmrEditor) return;
     if (typeof document === "undefined" || typeof node.addDOMWidget !== "function") return;
@@ -1413,7 +1342,6 @@ function ensurePromptEditor(node) {
             event.stopPropagation();
             return;
         }
-
         /* 回车/空格：先【台词】，再 @引用，再 切镜 */
         if ((event.key === " " || event.key === "Enter") && !node.__mmrPromptComposing) {
             if (convertBracketsAtCaret(node, editor)) {
@@ -1603,7 +1531,7 @@ function patchGraphToPrompt() {
 }
 
 /* ================================================================
-样式
+样式（只新增缩略图相关，不修改原有布局）
 ================================================================ */
 function installStyles() {
     const style = document.createElement("style");
@@ -1720,9 +1648,31 @@ function installStyles() {
     margin-right: 3px;
     font-size: 0.9em;
     opacity: 0.8;
+    vertical-align: middle;
 }
-/* @ 提及菜单 - 提高层级 */
-.${MENTION_MENU_CLASS} {
+
+/* ========== 新增：引用块正方形缩略图 ========== */
+.mmr-chip-thumb {
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    border-radius: 2px;
+    overflow: hidden;
+    line-height: 14px;
+    text-align: center;
+    background: rgba(0,0,0,.2);
+}
+.mmr-chip-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+/* ========== 新增：@菜单正方形缩略图 ========== */
+.mmr-mention-menu {
     position: fixed !important;
     z-index: 99999 !important;
     width: 220px;
@@ -1737,17 +1687,19 @@ function installStyles() {
     font-family: Consolas, "Courier New", monospace;
     font-size: 12px !important;
     display: block !important;
+    box-sizing: border-box;
 }
-.${MENTION_MENU_ITEM_CLASS} {
+.mmr-mention-menu-item {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
     border-radius: 4px;
     cursor: pointer;
+    box-sizing: border-box;
 }
-.${MENTION_MENU_ITEM_CLASS}.is-active,
-.${MENTION_MENU_ITEM_CLASS}:hover {
+.mmr-mention-menu-item.is-active,
+.mmr-mention-menu-item:hover {
     background: rgba(255, 178, 102, 0.25) !important;
     color: #fff !important;
 }
@@ -1760,11 +1712,17 @@ function installStyles() {
     font-size: 14px;
     flex-shrink: 0;
 }
-.mmr-mention-menu-icon img {
-    width: 20px;
-    height: 20px;
-    object-fit: cover;
+.mmr-menu-thumb {
+    padding: 0;
     border-radius: 3px;
+    overflow: hidden;
+    background: rgba(0,0,0,.3);
+}
+.mmr-menu-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 .mmr-mention-menu-text {
     flex: 1;
@@ -1878,13 +1836,11 @@ function installNode(nodeType, nodeData) {
         return result;
     };
 
-    // 修复：连线变化时刷新素材列表
     const originalConnectionsChanged = nodeType.prototype.onConnectionsChanged;
     nodeType.prototype.onConnectionsChanged = function onConnectionsChangedMMR(...args) {
         const result = originalConnectionsChanged?.apply(this, args);
         instrumentWidgets(this);
         captureWidgetState(this);
-        // 如果编辑器打开着，刷新菜单
         if (this.__mmrEditor && document.activeElement === this.__mmrEditor) {
             openOrUpdateMentionMenu(this, this.__mmrEditor);
         }
@@ -1903,7 +1859,6 @@ app.registerExtension({
         patchGraphToPrompt();
         installStyles();
 
-        // 全局点击关闭菜单
         document.addEventListener("pointerdown", (event) => {
             if (!activeMentionMenu) return;
             if (activeMentionMenu.element.contains(event.target)) return;
