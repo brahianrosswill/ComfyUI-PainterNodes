@@ -79,14 +79,14 @@ class MiniMaxRefToVideo(io.ComfyNode):
                     default=1376,
                     min=32,
                     max=nodes.MAX_RESOLUTION,
-                    step=16,
+                    step=32,
                 ),
                 io.Int.Input(
                     "height",
                     default=768,
                     min=32,
                     max=nodes.MAX_RESOLUTION,
-                    step=16,
+                    step=32,
                 ),
                 io.Int.Input(
                     "length",
