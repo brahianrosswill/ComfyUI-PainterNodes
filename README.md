@@ -11,6 +11,13 @@
 
 ## ✨更新日志：
 
+ 2026-8-9更新
+
+ 新增优化版MiniMaxRefToVideo节点，可以对提示词按minimax H3官方skill进行格式化，效果很不错！
+ 
+ <img width="2494" height="1327" alt="image" src="https://github.com/user-attachments/assets/502cd716-8198-4a0e-baa5-e108bfde126e" />
+
+
  2026-7-8更新
 
  新增PainterLTX2Vomni节点，可以对bernini生成的无声视频进行配音对口型，效果非常不错！值得尝试！节点同时支持文生视频，图生视频，首尾帧生视频，参考生视频等多种任务（相关工作流见项目下workflows文件夹）
