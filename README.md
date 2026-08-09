@@ -15,7 +15,9 @@
 
  新增优化版MiniMaxRefToVideo节点，可以对提示词按minimax H3官方skill进行格式化，效果很不错！
  
-<img width="1814" height="1069" alt="image" src="https://github.com/user-attachments/assets/83e214c9-eaae-41c2-82c2-22b2f3c090dd" />
+<img width="1787" height="1176" alt="image" src="https://github.com/user-attachments/assets/949441d4-69be-4bb9-9fb0-3c1f31440a94" />
+
+
 
 
 
