@@ -1239,9 +1239,9 @@ function hideOriginalPromptWidget(widget) {
         widget.__mmrOriginalType = widget.type;
         widget.__mmrOriginalComputeSize = widget.computeSize;
     }
-    widget.hidden = true;
-    widget.type = "hidden";
-    widget.computeSize = () => [0, -4];
+    widget.hidden = false;
+    widget.computeSize = () => [2, 2];
+    widget.type = "text";
 }
 function ensurePromptEditor(node) {
     if (node.__mmrEditor) return;
