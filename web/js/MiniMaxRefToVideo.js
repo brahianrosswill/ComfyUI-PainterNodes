@@ -83,6 +83,16 @@ function formatShotTime(totalSeconds) {
     return `${s}秒切镜`;
 }
 
+// ===== 新增：生成prompt用的 MM:SS.ff 标准时间戳 =====
+function formatShotTimestamp(totalSeconds) {
+    const s = Math.max(0, Number(totalSeconds) || 0);
+    const minutes = Math.floor(s / 60);
+    const seconds = s % 60;
+    const mm = String(minutes).padStart(2, "0");   // 分钟补零到2位
+    const ss = seconds.toFixed(2).padStart(5, "0"); // 秒补零到2位整数+2位小数
+    return `${mm}:${ss}`;
+}
+
 function wrapDialogueTag(text) {
     const trimmed = String(text || "").trim();
     if (!trimmed) return "";
@@ -1026,7 +1036,7 @@ function buildRuntimePrompt(node) {
     let shotIndex = 1;
     const emitShot = (seconds) => {
         shotIndex += 1;
-        return `[Shot ${shotIndex}] At ${formatShotTime(seconds)},`;
+        return `[Shot ${shotIndex}] At ${formatShotTimestamp(seconds)},`;
     };
     const pieces = doc.parts.map((part) => {
         if (part?.type === "dialogue") return wrapDialogueTag(part.text);
