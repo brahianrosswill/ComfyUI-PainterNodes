@@ -1,6 +1,7 @@
 import { app } from "../../scripts/app.js";
 /* ================================================================
-MiniMaxRefToVideo.js  (性能修复版 - 解决溢出/卡顿/内存泄漏)
+MiniMaxRefToVideo.js  (性能修复版 + 数值连线生效修复)
+修复：上游接入width/height/length/ref_max_size数值连线不生效，被面板值覆盖问题
 ================================================================ */
 const NODE_CLASS = "MiniMaxRefToVideo";
 const PROMPT_DOC_PROP = "mmr_prompt_doc";
@@ -50,19 +51,16 @@ const MENTION_ICON_MAP = {
     video: "🎞️",
     audio: "🔊",
 };
-// @提及菜单相关
 const MENTION_MENU_CLASS = "mmr-mention-menu";
 const MENTION_MENU_ITEM_CLASS = "mmr-mention-menu-item";
-// 性能优化相关常量
 const SIZE_STORE_THROTTLE_MS = 300;
 const SYNC_THROTTLE_MS = 120;
-
 let installed = false;
 let patchedPrompt = false;
 let activeMentionMenu = null;
-// 防抖/缓存全局容器
 const sizeThrottleMap = new WeakMap();
 const syncThrottleMap = new WeakMap();
+const relayoutThrottleMap = new WeakMap();
 
 /* ================================================================
 工具函数
@@ -80,14 +78,9 @@ function getWidget(node, name) {
     return node?.widgets?.find((w) => w?.name === name) || null;
 }
 
-function padLeft(v, size) {
-    return String(v).padStart(size, "0");
-}
-
 function formatShotTime(totalSeconds) {
     const s = Number(totalSeconds);
-    const display = Number.isInteger(s) ? s : s;
-    return `${display}秒切镜`;
+    return `${s}秒切镜`;
 }
 
 function wrapDialogueTag(text) {
@@ -116,14 +109,11 @@ function postProcessPromptText(text) {
     return result;
 }
 
-// 获取源节点（兼容多种 ComfyUI 版本）
 function getSourceNode(targetNode, inputIndex) {
     const input = targetNode.inputs?.[inputIndex];
     if (!input) return null;
-    
     const linkId = input.link;
     if (linkId == null) return null;
-    
     const graph = targetNode.graph || app.graph;
     if (!graph) return null;
     if (graph.links instanceof Map) {
@@ -159,16 +149,12 @@ function getMediaPreview(sourceNode, type) {
     return "";
 }
 
-// 扫描已连接素材（带缓存，连线变化才刷新）
 function getConnectedMedia(node) {
     const media = { image: [], video: [], audio: [] };
     if (!node?.inputs) return media;
-    
-    // 命中缓存直接返回
     if (node.__mediaCache && !node.__mediaDirty) {
         return node.__mediaCache;
     }
-
     node.inputs.forEach((input, index) => {
         if (input.link == null) return;
         const name = String(input.name || "");
@@ -215,13 +201,11 @@ function getConnectedMedia(node) {
     ["image", "video", "audio"].forEach(type => {
         media[type].sort((a, b) => a.ordinal - b.ordinal);
     });
-
     node.__mediaCache = media;
     node.__mediaDirty = false;
     return media;
 }
 
-// 尺寸存储节流
 function throttledStoreNodeSize(node, size) {
     if (!node || sizeThrottleMap.has(node)) return;
     sizeThrottleMap.set(node, true);
@@ -233,19 +217,87 @@ function throttledStoreNodeSize(node, size) {
     }, SIZE_STORE_THROTTLE_MS);
 }
 
-/* ================================================================
-DOM 辅助
-================================================================ */
+function forceWidgetRelayout(node) {
+    if (!node || node.__mmrRemoved) return;
+    if (relayoutThrottleMap.has(node)) return;
+    relayoutThrottleMap.set(node, true);
+    const doNudge = () => {
+        if (!node || node.__mmrRemoved || typeof node.setSize !== "function") return;
+        const size = Array.isArray(node.size) ? node.size : null;
+        if (!size) return;
+        const w = Number(size[0]) || DEFAULT_NODE_SIZE[0];
+        const h = Number(size[1]) || DEFAULT_NODE_SIZE[1];
+        node.__mmrRestoringSize = true;
+        try {
+            node.setSize([w, Math.max(1, h - 1)]);
+            node.setSize([w, h]);
+            node.setDirtyCanvas?.(true, true);
+            app.graph?.setDirtyCanvas?.(true, true);
+        } finally {
+            node.__mmrRestoringSize = false;
+        }
+    };
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            relayoutThrottleMap.delete(node);
+            doNudge();
+            node.__mmrOverflowGuardCheck?.();
+            setTimeout(() => {
+                doNudge();
+                node.__mmrOverflowGuardCheck?.();
+            }, 200);
+        });
+    });
+}
+
+function installOverflowGuard(node, wrap) {
+    if (!node || !wrap || node.__mmrOverflowGuard) return;
+    const check = () => {
+        if (!node || node.__mmrRemoved || !wrap.isConnected) return;
+        const scale = app.canvas?.ds?.scale;
+        if (!scale) return;
+        const size = Array.isArray(node.size) ? node.size : null;
+        if (!size) return;
+        const nodeW = Number(size[0]) || 0;
+        const nodeH = Number(size[1]) || 0;
+        if (nodeW <= 0 || nodeH <= 0) return;
+        const rect = wrap.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const graphW = rect.width / scale;
+        const graphH = rect.height / scale;
+        if (graphH > nodeH - 4) {
+            const safeHeight = Math.max(50, nodeH - 40);
+            wrap.style.setProperty("height", `${safeHeight * scale}px`, "important");
+        } else if (wrap.style.getPropertyValue("height")) {
+            wrap.style.removeProperty("height");
+        }
+        if (graphW > nodeW + 4) {
+            wrap.style.setProperty("width", `${nodeW * scale}px`, "important");
+        } else if (wrap.style.getPropertyValue("width")) {
+            wrap.style.removeProperty("width");
+        }
+    };
+    let observer = null;
+    if (typeof ResizeObserver === "function") {
+        observer = new ResizeObserver(() => check());
+        observer.observe(wrap);
+    }
+    node.__mmrOverflowGuard = observer;
+    node.__mmrOverflowGuardCheck = check;
+    check();
+    [50, 150, 350, 700, 1200].forEach((delay) => {
+        setTimeout(() => {
+            if (!node.__mmrRemoved) check();
+        }, delay);
+    });
+}
+
 function makeCaretSentinel() {
     return document.createTextNode(CARET_SENTINEL);
 }
 
 function isCaretSentinelText(node) {
     return node?.nodeType === Node.TEXT_NODE && String(node.textContent || "").includes(CARET_SENTINEL);
-}
-
-function isOnlyCaretSentinelText(node) {
-    return node?.nodeType === Node.TEXT_NODE && stripCaretSentinels(node.textContent) === "";
 }
 
 function stripCaretSentinels(value) {
@@ -427,7 +479,7 @@ function removeDialogueBlock(block) {
         parent.insertBefore(marker, block);
     }
     block.remove();
-    if (after !== marker && isOnlyCaretSentinelText(after)) after.remove();
+    if (after !== marker && isCaretSentinelText(after)) after.remove();
     setCaretAtNode(marker, marker.textContent.length);
     return true;
 }
@@ -537,7 +589,7 @@ function validateShotChips(editor) {
 }
 
 /* ================================================================
-引用块（正方形缩略图版）
+引用块
 ================================================================ */
 function isMentionChip(node) {
     return (
@@ -678,7 +730,6 @@ function renderMentionMenu(menu, options) {
     options.forEach((item, index) => {
         const el = document.createElement("div");
         el.className = `${MENTION_MENU_ITEM_CLASS} ${index === menu.activeIndex ? "is-active" : ""}`;
-        
         const icon = document.createElement("span");
         icon.className = "mmr-mention-menu-icon mmr-menu-thumb";
         const preview = getMediaPreview(item.sourceNode, item.type);
@@ -714,16 +765,12 @@ function positionMentionMenu(element, editor) {
     const rect = caretRect && (caretRect.width || caretRect.height) ? caretRect : editorRect;
     element.style.visibility = "hidden";
     element.style.display = "block";
-    
     const menuW = element.offsetWidth || 220;
     const menuH = Math.min(300, element.offsetHeight);
-    
     let left = rect.left;
     let top = rect.bottom + 4;
-    
     if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
     if (top + menuH > window.innerHeight - 8) top = Math.max(8, rect.top - menuH - 4);
-    
     element.style.left = `${Math.max(8, left)}px`;
     element.style.top = `${Math.max(8, top)}px`;
     element.style.visibility = "visible";
@@ -731,14 +778,13 @@ function positionMentionMenu(element, editor) {
 
 function openOrUpdateMentionMenu(node, editor) {
     const mention = getMentionRange(editor);
-    
     if (!mention) {
         closeMentionMenu();
         return false;
     }
     const media = getConnectedMedia(node);
     const allOptions = [...media.image, ...media.video, ...media.audio];
-    const filtered = allOptions.filter(opt => 
+    const filtered = allOptions.filter(opt =>
         !mention.query || opt.label.toLowerCase().includes(mention.query)
     );
     if (!filtered.length) {
@@ -754,11 +800,9 @@ function openOrUpdateMentionMenu(node, editor) {
     activeMentionMenu.options = filtered;
     activeMentionMenu.activeIndex = Math.min(activeMentionMenu.activeIndex, filtered.length - 1);
     renderMentionMenu(activeMentionMenu, filtered);
-    
     requestAnimationFrame(() => {
         if (activeMentionMenu) positionMentionMenu(activeMentionMenu.element, editor);
     });
-    
     return true;
 }
 
@@ -920,17 +964,13 @@ function renderEditorFromNode(node, force = false) {
     validateShotChips(editor);
 }
 
-// 带防抖的同步
 function syncPromptFromEditor(node, markDirty = true) {
     const editor = node?.__mmrEditor;
     const widget = getWidget(node, "prompt");
     if (!editor || !widget || node.__mmrEditorSyncing) return;
-
-    // 清除上一次未执行的同步
     if (syncThrottleMap.has(node)) {
         clearTimeout(syncThrottleMap.get(node));
     }
-
     const timer = setTimeout(() => {
         if (!node || node.__mmrRemoved) return;
         node.__mmrEditorSyncing = true;
@@ -951,11 +991,9 @@ function syncPromptFromEditor(node, markDirty = true) {
             syncThrottleMap.delete(node);
         }
     }, SYNC_THROTTLE_MS);
-
     syncThrottleMap.set(node, timer);
 }
 
-// 强制立即同步（生成/序列化时用）
 function syncPromptFromEditorImmediate(node, markDirty = true) {
     const editor = node?.__mmrEditor;
     const widget = getWidget(node, "prompt");
@@ -1268,8 +1306,8 @@ function restoreWidgetState(node, stateArg = null) {
 function writeNodeSize(node, size) {
     if (!node) return;
     const source = Array.isArray(size) || size?.length != null ? size : node.size;
-    const w = Math.max(220, Math.round(Number(source?.[0]) || DEFAULT_NODE_SIZE[0]));
-    const h = Math.max(120, Math.round(Number(source?.[1]) || DEFAULT_NODE_SIZE[1]));
+    const w = Math.min(4000, Math.max(220, Math.round(Number(source?.[0]) || DEFAULT_NODE_SIZE[0])));
+    const h = Math.min(4000, Math.max(120, Math.round(Number(source?.[1]) || DEFAULT_NODE_SIZE[1])));
     node.properties ||= {};
     node.properties[NODE_SIZE_PROP] = [w, h];
 }
@@ -1288,7 +1326,7 @@ function applyNodeSizeNow(node, size) {
 
 function instrumentWidgets(node) {
     if (!node?.widgets) return;
-    for (const w of node.widgets) {
+    for (const w of node.widgets || []) {
         if (!w || !w.name) continue;
         if (w.name === "mmr_prompt_editor") continue;
         if (w.__mmrInstrumented) continue;
@@ -1436,13 +1474,11 @@ function ensurePromptEditor(node) {
     );
 
     editor.addEventListener("keydown", (event) => {
-        // 优先处理@菜单键盘导航
         if (handleMentionMenuKeydown(node, editor, event)) {
             event.preventDefault();
             event.stopPropagation();
             return;
         }
-        /* 回车/空格：先【台词】，再 @引用，再 切镜 */
         if ((event.key === " " || event.key === "Enter") && !node.__mmrPromptComposing) {
             if (convertBracketsAtCaret(node, editor)) {
                 event.preventDefault();
@@ -1559,6 +1595,7 @@ function ensurePromptEditor(node) {
     wrap.append(editor);
     node.__mmrEditor = editor;
     node.__mmrEditorWrap = wrap;
+    installOverflowGuard(node, wrap);
     renderEditorFromNode(node);
     resetPromptHistory(node);
 
@@ -1583,6 +1620,7 @@ function ensurePromptEditor(node) {
         node.__mmrEditorWrap = null;
         return;
     }
+
     node.__mmrDomWidget = domWidget;
     domWidget.serialize = false;
     domWidget.skip_serialize = true;
@@ -1599,8 +1637,9 @@ function ensurePromptEditor(node) {
     node.setDirtyCanvas?.(true, false);
 }
 
+
 /* ================================================================
-graphToPrompt 补丁
+graphToPrompt 补丁（核心修复：数值连线 + 提示词连线均不被面板值覆盖）
 ================================================================ */
 function patchGraphToPrompt() {
     if (patchedPrompt || typeof app.graphToPrompt !== "function") return;
@@ -1616,11 +1655,26 @@ function patchGraphToPrompt() {
             const promptNode = output[String(node.id)];
             if (!promptNode) continue;
             promptNode.inputs ||= {};
+
             if (node.__mmrEditor) syncPromptFromEditorImmediate(node, false);
             captureWidgetState(node);
             writeNodeSize(node, node.size);
-            promptNode.inputs.prompt = buildRuntimePrompt(node);
-            for (const key of ["width", "height", "length", "ref_max_size"]) {
+
+            // ===== 修复：提示词输入有连线时不覆盖 =====
+            const promptInput = node.inputs?.find(inp => inp.name === "prompt");
+            if (promptInput?.link == null) {
+                // 无连线才使用编辑器构建的运行时提示词（台词/切镜/@素材 生效）
+                promptNode.inputs.prompt = buildRuntimePrompt(node);
+            }
+            // 有连线则保留原生上游引用，不做任何覆盖
+
+            // ===== 修复：数值输入有连线时不覆盖 =====
+            const numKeys = ["width", "height", "length", "ref_max_size"];
+            for (const key of numKeys) {
+                const inputDef = node.inputs?.find(inp => inp.name === key);
+                // 端口有连线，保留上游引用，不使用面板widget值
+                if (inputDef?.link != null) continue;
+                // 无连线才回退到面板值
                 const widget = getWidget(node, key);
                 if (widget && typeof widget.value !== "undefined") {
                     promptNode.inputs[key] = widget.value;
@@ -1632,7 +1686,7 @@ function patchGraphToPrompt() {
 }
 
 /* ================================================================
-样式（修复溢出 + 约束硬宽高）
+样式
 ================================================================ */
 function installStyles() {
     const style = document.createElement("style");
@@ -1753,7 +1807,6 @@ function installStyles() {
     opacity: 0.8;
     vertical-align: middle;
 }
-/* 引用块正方形缩略图 */
 .mmr-chip-thumb {
     width: 14px;
     height: 14px;
@@ -1772,7 +1825,6 @@ function installStyles() {
     margin: 0;
     padding: 0;
 }
-/* @菜单正方形缩略图 */
 .mmr-mention-menu {
     position: fixed !important;
     z-index: 99999 !important;
@@ -1849,7 +1901,7 @@ function installNode(nodeType, nodeData) {
     applyNodeDataDefaults(nodeData);
     if (nodeType.prototype.__mmrNodeInstalled) return;
     nodeType.prototype.__mmrNodeInstalled = true;
-    
+
     const originalCreated = nodeType.prototype.onNodeCreated;
     nodeType.prototype.onNodeCreated = function onNodeCreatedMMR() {
         const result = originalCreated?.apply(this, arguments);
@@ -1866,6 +1918,7 @@ function installNode(nodeType, nodeData) {
             } else if (Array.isArray(storedSize)) {
                 applyNodeSizeNow(node, storedSize);
             }
+            forceWidgetRelayout(node);
         }, 0);
         return result;
     };
@@ -1889,11 +1942,12 @@ function installNode(nodeType, nodeData) {
         renderEditorFromNode(this);
         resetPromptHistory(this);
         instrumentWidgets(this);
-        if (incomingSize) {
+        {
             const node = this;
             setTimeout(() => {
                 if (node.__mmrRemoved) return;
-                applyNodeSizeNow(node, incomingSize);
+                if (incomingSize) applyNodeSizeNow(node, incomingSize);
+                forceWidgetRelayout(node);
             }, 50);
         }
         return result;
@@ -1917,9 +1971,7 @@ function installNode(nodeType, nodeData) {
     const originalRemoved = nodeType.prototype.onRemoved;
     nodeType.prototype.onRemoved = function onRemovedMMR() {
         this.__mmrRemoved = true;
-        // 清理全局菜单引用
         if (activeMentionMenu?.node === this) closeMentionMenu();
-        // 清理定时器
         if (this.__mmrEditorRetryTimer) {
             clearTimeout(this.__mmrEditorRetryTimer);
             this.__mmrEditorRetryTimer = null;
@@ -1929,7 +1981,9 @@ function installNode(nodeType, nodeData) {
             syncThrottleMap.delete(this);
         }
         sizeThrottleMap.delete(this);
-        // 清理DOM与引用
+        relayoutThrottleMap.delete(this);
+        this.__mmrOverflowGuard?.disconnect?.();
+        this.__mmrOverflowGuard = null;
         this.__mmrEditorWrap?.remove?.();
         this.__mmrEditor = null;
         this.__mmrEditorWrap = null;
@@ -1942,9 +1996,17 @@ function installNode(nodeType, nodeData) {
         return originalRemoved?.apply(this, arguments);
     };
 
+    const originalOnAdded = nodeType.prototype.onAdded;
+    nodeType.prototype.onAdded = function onAddedMMR(graph) {
+        const result = originalOnAdded?.apply(this, arguments);
+        forceWidgetRelayout(this);
+        return result;
+    };
+
     const originalOnResize = nodeType.prototype.onResize;
     nodeType.prototype.onResize = function onResizeMMR(size) {
         const result = originalOnResize?.apply(this, arguments);
+        this.__mmrOverflowGuardCheck?.();
         if (!this.__mmrRestoringSize) {
             throttledStoreNodeSize(this, size || this.size);
         }
@@ -1963,7 +2025,21 @@ function installNode(nodeType, nodeData) {
         const result = originalConnectionsChanged?.apply(this, args);
         this.__mediaDirty = true;
         instrumentWidgets(this);
+
+        // ===== 修复：数值端口连线变化时，清理持久化缓存 =====
+        const numKeys = ["width", "height", "length", "ref_max_size"];
+        const state = this.properties?.[WIDGET_STATE_PROP];
+        if (state) {
+            for (const key of numKeys) {
+                const inputDef = this.inputs?.find(inp => inp.name === key);
+                if (inputDef?.link != null) {
+                    delete state[key];
+                }
+            }
+        }
+
         captureWidgetState(this);
+        forceWidgetRelayout(this);
         if (this.__mmrEditor && document.activeElement === this.__mmrEditor) {
             openOrUpdateMentionMenu(this, this.__mmrEditor);
         }
