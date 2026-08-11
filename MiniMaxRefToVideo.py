@@ -162,6 +162,7 @@ class MiniMaxRefToVideo(io.ComfyNode):
                 io.Latent.Output(),
                 io.Int.Output(display_name="width"),
                 io.Int.Output(display_name="height"),
+                io.Int.Output(display_name="length"),
                 io.String.Output(display_name="prompt"),
             ],
         )
@@ -318,7 +319,7 @@ class MiniMaxRefToVideo(io.ComfyNode):
         if ref_blocks:
             cond = node_helpers.conditioning_set_values(cond, {"minimax_refs": ref_blocks})
 
-        return io.NodeOutput(cond, latent, width, height, prompt)
+        return io.NodeOutput(cond, latent, width, height, length, prompt)
 
 
 NODE_CLASS_MAPPINGS = {
