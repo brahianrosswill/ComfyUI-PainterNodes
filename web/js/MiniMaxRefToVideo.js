@@ -227,32 +227,52 @@ function throttledStoreNodeSize(node, size) {
     }, SIZE_STORE_THROTTLE_MS);
 }
 
+function cancelPendingRelayout(node) {
+    const pending = relayoutThrottleMap.get(node);
+    if (!pending) return;
+    if (pending.raf1 != null) cancelAnimationFrame(pending.raf1);
+    if (pending.raf2 != null) cancelAnimationFrame(pending.raf2);
+    if (pending.timeout != null) clearTimeout(pending.timeout);
+    relayoutThrottleMap.delete(node);
+}
+
 function forceWidgetRelayout(node) {
     if (!node || node.__mmrRemoved) return;
-    if (relayoutThrottleMap.has(node)) return;
-    relayoutThrottleMap.set(node, true);
+    // Coalesce bursts of calls (onNodeCreated / onConfigure / onAdded /
+    // onConnectionsChanged can all fire close together) into a single
+    // relayout cycle instead of letting overlapping cycles pile up, which
+    // is what made things get slower the longer a session ran.
+    cancelPendingRelayout(node);
+    const pending = {};
+    relayoutThrottleMap.set(node, pending);
     const doNudge = () => {
         if (!node || node.__mmrRemoved || typeof node.setSize !== "function") return;
         const size = Array.isArray(node.size) ? node.size : null;
         if (!size) return;
         const w = Number(size[0]) || DEFAULT_NODE_SIZE[0];
         const h = Number(size[1]) || DEFAULT_NODE_SIZE[1];
+        // Clear any emergency clamp first so litegraph's widget layout is
+        // recomputed against the real node size, not a previously shrunk box.
+        node.__mmrOverflowGuardClear?.();
         node.__mmrRestoringSize = true;
         try {
             node.setSize([w, Math.max(1, h - 1)]);
             node.setSize([w, h]);
-            node.setDirtyCanvas?.(true, true);
-            app.graph?.setDirtyCanvas?.(true, true);
+            // Only this node needs to redraw; forcing a full-graph
+            // background redraw (setDirtyCanvas(true, true)) here is
+            // needlessly expensive and, done repeatedly, is a major source
+            // of the growing lag over long sessions.
+            node.setDirtyCanvas?.(true, false);
         } finally {
             node.__mmrRestoringSize = false;
         }
     };
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+    pending.raf1 = requestAnimationFrame(() => {
+        pending.raf2 = requestAnimationFrame(() => {
             relayoutThrottleMap.delete(node);
             doNudge();
             node.__mmrOverflowGuardCheck?.();
-            setTimeout(() => {
+            pending.timeout = setTimeout(() => {
                 doNudge();
                 node.__mmrOverflowGuardCheck?.();
             }, 200);
@@ -262,7 +282,18 @@ function forceWidgetRelayout(node) {
 
 function installOverflowGuard(node, wrap) {
     if (!node || !wrap || node.__mmrOverflowGuard) return;
-    const check = () => {
+    // IMPORTANT: this guard watches `wrap` with a ResizeObserver and, when it
+    // detects overflow, writes a clamped height/width back onto `wrap`
+    // itself. Observing an element and then mutating that same element's box
+    // from inside the callback is a classic feedback-loop trap: shrinking it
+    // makes the observer fire again, which used to remove the clamp because
+    // it now looked "fine", which let it grow back and re-trigger the clamp,
+    // forever. That endless observe -> mutate -> observe cycle (each pass
+    // doing a forced layout read + a style write) is what pinned a CPU core
+    // and made the canvas get steadily more sluggish the longer a session
+    // ran. Fix: only ever clamp DOWN from here; clamps are only ever removed
+    // by an explicit relayout (clearClamp), never by this passive check.
+    const applyClamp = () => {
         if (!node || node.__mmrRemoved || !wrap.isConnected) return;
         const scale = app.canvas?.ds?.scale;
         if (!scale) return;
@@ -277,14 +308,38 @@ function installOverflowGuard(node, wrap) {
         const graphH = rect.height / scale;
         if (graphH > nodeH - 4) {
             const safeHeight = Math.max(50, nodeH - 40);
-            wrap.style.setProperty("height", `${safeHeight * scale}px`, "important");
-        } else if (wrap.style.getPropertyValue("height")) {
-            wrap.style.removeProperty("height");
+            const px = `${(safeHeight * scale).toFixed(1)}px`;
+            if (wrap.dataset.mmrClampH !== px) {
+                wrap.dataset.mmrClampH = px;
+                wrap.style.setProperty("height", px, "important");
+            }
         }
         if (graphW > nodeW + 4) {
-            wrap.style.setProperty("width", `${nodeW * scale}px`, "important");
-        } else if (wrap.style.getPropertyValue("width")) {
+            const px = `${(nodeW * scale).toFixed(1)}px`;
+            if (wrap.dataset.mmrClampW !== px) {
+                wrap.dataset.mmrClampW = px;
+                wrap.style.setProperty("width", px, "important");
+            }
+        }
+    };
+    let rafPending = false;
+    const check = () => {
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => {
+            rafPending = false;
+            applyClamp();
+        });
+    };
+    const clearClamp = () => {
+        if (!wrap) return;
+        if (wrap.dataset.mmrClampH) {
+            wrap.style.removeProperty("height");
+            delete wrap.dataset.mmrClampH;
+        }
+        if (wrap.dataset.mmrClampW) {
             wrap.style.removeProperty("width");
+            delete wrap.dataset.mmrClampW;
         }
     };
     let observer = null;
@@ -294,6 +349,7 @@ function installOverflowGuard(node, wrap) {
     }
     node.__mmrOverflowGuard = observer;
     node.__mmrOverflowGuardCheck = check;
+    node.__mmrOverflowGuardClear = clearClamp;
     check();
     [50, 150, 350, 700, 1200].forEach((delay) => {
         setTimeout(() => {
@@ -1324,6 +1380,7 @@ function writeNodeSize(node, size) {
 
 function applyNodeSizeNow(node, size) {
     if (!node || !Array.isArray(size) && size?.length == null) return;
+    node.__mmrOverflowGuardClear?.();
     node.__mmrRestoringSize = true;
     try {
         node.setSize?.(size);
@@ -1991,9 +2048,11 @@ function installNode(nodeType, nodeData) {
             syncThrottleMap.delete(this);
         }
         sizeThrottleMap.delete(this);
-        relayoutThrottleMap.delete(this);
+        cancelPendingRelayout(this);
         this.__mmrOverflowGuard?.disconnect?.();
         this.__mmrOverflowGuard = null;
+        this.__mmrOverflowGuardCheck = null;
+        this.__mmrOverflowGuardClear = null;
         this.__mmrEditorWrap?.remove?.();
         this.__mmrEditor = null;
         this.__mmrEditorWrap = null;
