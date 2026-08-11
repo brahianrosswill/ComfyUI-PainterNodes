@@ -13,7 +13,7 @@
 
  2026-8-9更新
 
- 新增优化版MiniMaxRefToVideo节点，可以对提示词按minimax H3官方skill进行格式化，效果很不错！
+ 新增优化版MiniMaxRefToVideo节点，可以对提示词按minimax H3官方skill进行格式化，效果很不错！使用方法示例：选择素材直接@：@图片1 @音频1 @视频1   第3.5秒开始切镜：切镜3.5+空格   台词：【台词内容】+空格 
  
 <img width="1560" height="909" alt="image" src="https://github.com/user-attachments/assets/8416fe22-6ed0-40ff-8e9e-4534a36ad17e" />
 
